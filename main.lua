@@ -9,9 +9,6 @@
            Delta / Solara / Fluxus / Synapse X / KRNL Compatible
 --]]
 
--- ══════════════════════════════════════════════════════
---  EXECUTOR DETECTION
--- ══════════════════════════════════════════════════════
 local ExecutorName = "Unknown"
 pcall(function()
     if syn then ExecutorName = "Synapse X"
@@ -24,9 +21,6 @@ pcall(function()
     end
 end)
 
--- ══════════════════════════════════════════════════════
---  SERVICES
--- ══════════════════════════════════════════════════════
 local Players          = game:GetService("Players")
 local RunService       = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -39,12 +33,8 @@ local TeleportSvc      = game:GetService("TeleportService")
 local LP    = Players.LocalPlayer
 local Mouse = LP:GetMouse()
 
--- Kamera her zaman güncel
 local function CAM() return Workspace.CurrentCamera end
 
--- ══════════════════════════════════════════════════════
---  GAME DETECTION
--- ══════════════════════════════════════════════════════
 local GameID   = game.PlaceId
 local GameName = ({
     [292439477]   = "Jailbreak",      [6872265039]  = "Blox Fruits",
@@ -54,9 +44,6 @@ local GameName = ({
     [606849621]   = "MeepCity",       [17017769292] = "Rivals",
 })[GameID] or "Universal"
 
--- ══════════════════════════════════════════════════════
---  CONFIG
--- ══════════════════════════════════════════════════════
 local CFG_FOLDER = "RedaxHACK"
 local CFG_FILE   = CFG_FOLDER.."/config.json"
 
@@ -67,19 +54,21 @@ local function EnsureDir()
 end
 
 local DEFAULT = {
-    SilentAim=false, SilentAimFOV=120, SilentAimShowFOV=true, SilentAimPart="Head",
     Aimbot=false, AimbotFOV=120, AimbotShowFOV=true,
     AimbotPart="Head", AimbotSmooth=5, AimbotKey="RMB",
     Prediction=false, PredictionMs=120,
     TeamCheck=true, WallCheck=false,
     Triggerbot=false, TrigDelay=80, HitChance=100,
     HitboxExpander=false, HitboxSize=8,
-    BoxESP=false, BoxThick=1,
     NameESP=false, HealthESP=false, DistESP=false,
+    WeaponESP=false,
     TracerESP=false, TracerOrigin="Bottom",
-    SkeletonESP=false,
-    Chams=false, ChamsR=255, ChamsG=50, ChamsB=50, ChamsAlpha=60,
     HeadDot=false,
+    SkeletonESP=false,
+    Chams=false, ChamsAlpha=60,
+    ChamsTeamMode=true,
+    ChamsR=255, ChamsG=50, ChamsB=50,
+    ChamsAllyAlpha=70,
     Speed=false, WalkSpeed=16,
     Fly=false, FlySpeed=60,
     Noclip=false, InfJump=false,
@@ -109,9 +98,6 @@ local function LoadConfig()
 end
 LoadConfig()
 
--- ══════════════════════════════════════════════════════
---  UTILITY
--- ══════════════════════════════════════════════════════
 local function CHAR()  return LP.Character end
 local function HRPF()
     local c=CHAR(); return c and c:FindFirstChild("HumanoidRootPart")
@@ -120,26 +106,22 @@ local function HUMF()
     local c=CHAR(); return c and c:FindFirstChildOfClass("Humanoid")
 end
 
--- WorldToScreen — Z kontrolü dahil
 local function W2S(pos)
     local ok, sp = pcall(function() return CAM():WorldToViewportPoint(pos) end)
     if not ok then return Vector2.zero, false, -1 end
     return Vector2.new(sp.X, sp.Y), sp.Z > 0, sp.Z
 end
 
--- Ekran merkezi
 local function SCRCTR()
     local vp = CAM().ViewportSize
     return Vector2.new(vp.X/2, vp.Y/2)
 end
 
--- Takım kontrolü
 local function SameTeam(p)
     if not C.TeamCheck then return false end
     return p.Team ~= nil and p.Team == LP.Team
 end
 
--- Line of Sight — yeni RaycastParams API
 local function HasLoS(from, to)
     local dir = to - from
     local rp  = RaycastParams.new()
@@ -147,7 +129,6 @@ local function HasLoS(from, to)
     rp.FilterDescendantsInstances = {CHAR() or Instance.new("Folder")}
     local res = Workspace:Raycast(from, dir, rp)
     if not res then return true end
-    -- Hedef karakterin bir parçasına çarptıysa LoS var
     for _, pl in ipairs(Players:GetPlayers()) do
         if pl ~= LP and pl.Character and res.Instance:IsDescendantOf(pl.Character) then
             return true
@@ -156,7 +137,6 @@ local function HasLoS(from, to)
     return false
 end
 
--- Geçerli hedef kontrolü + döndür
 local function ValidTarget(p)
     if p == LP then return false end
     if SameTeam(p) then return false end
@@ -165,13 +145,11 @@ local function ValidTarget(p)
     local hum = ch:FindFirstChildOfClass("Humanoid")
     if not hrp or not hum then return false end
     if hum.Health <= 0 then return false end
-    -- Ölüm animasyonu / ragdoll durumu
     local state = hum:GetState()
     if state == Enum.HumanoidStateType.Dead then return false end
     return true, ch, hrp, hum
 end
 
--- En yakın oyuncu
 local function Closest(fovR, useLoS)
     local ctr   = SCRCTR()
     local best, bDist, bCh, bHRP, bHum = nil, fovR
@@ -191,7 +169,6 @@ local function Closest(fovR, useLoS)
     return best, bCh, bHRP, bHum
 end
 
--- Aim part alma
 local function AimPart(ch, name)
     if not ch then return nil end
     local map = {
@@ -207,12 +184,29 @@ local function AimPart(ch, name)
     return ch:FindFirstChild("Head") or ch:FindFirstChild("HumanoidRootPart")
 end
 
--- ══════════════════════════════════════════════════════
---  FOV DAİRELERİ — tamamen bağımsız
--- ══════════════════════════════════════════════════════
-local SACirc = Drawing.new("Circle")
-SACirc.Filled=false; SACirc.Thickness=1.5
-SACirc.Color=Color3.fromRGB(255,80,80); SACirc.Visible=false
+local function GetWeapon(p)
+    local ch = p.Character
+    if not ch then return "" end
+    for _, obj in ipairs(ch:GetChildren()) do
+        if obj:IsA("Tool") then return "🔫 "..obj.Name end
+    end
+    local bp = p:FindFirstChild("Backpack")
+    if bp then
+        for _, obj in ipairs(bp:GetChildren()) do
+            if obj:IsA("Tool") then return "🎒 "..obj.Name end
+        end
+    end
+    local hrp = ch:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        local cw = hrp:FindFirstChild("CurrentWeapon") or hrp:FindFirstChild("Weapon")
+        if cw and (cw:IsA("StringValue") or cw:IsA("ObjectValue")) then
+            local val = cw.Value
+            if type(val) == "string" and val ~= "" then return "🔫 "..val end
+            if type(val) == "userdata" and val and val.Name then return "🔫 "..val.Name end
+        end
+    end
+    return ""
+end
 
 local ABCirc = Drawing.new("Circle")
 ABCirc.Filled=false; ABCirc.Thickness=1.5
@@ -220,41 +214,10 @@ ABCirc.Color=Color3.fromRGB(0,200,255); ABCirc.Visible=false
 
 RunService.RenderStepped:Connect(function()
     local c = SCRCTR()
-    SACirc.Position=c; SACirc.Radius=C.SilentAimFOV
-    SACirc.Visible = C.SilentAim and C.SilentAimShowFOV
-
     ABCirc.Position=c; ABCirc.Radius=C.AimbotFOV
     ABCirc.Visible = C.Aimbot and C.AimbotShowFOV
 end)
 
--- ══════════════════════════════════════════════════════
---  SILENT AIM
--- ══════════════════════════════════════════════════════
-local OrigNI, SAOn = nil, false
-local function EnableSA()
-    if SAOn then return end
-    if not hookmetamethod then warn("[RedaxHACK] hookmetamethod yok!"); SAOn=true; return end
-    SAOn = true
-    OrigNI = hookmetamethod(game,"__index",function(self,key)
-        if not checkcaller() then
-            if (key=="Hit" or key=="Target") and rawequal(self,Mouse) then
-                local _,ch = Closest(C.SilentAimFOV,false)
-                if ch then
-                    local part = AimPart(ch, C.SilentAimPart)
-                    if part then
-                        if key=="Hit"    then return CFrame.new(part.Position) end
-                        if key=="Target" then return part end
-                    end
-                end
-            end
-        end
-        return OrigNI(self,key)
-    end)
-end
-local function DisableSA()
-    if not SAOn then return end; SAOn=false
-    if OrigNI then pcall(function() hookmetamethod(game,"__index",OrigNI) end); OrigNI=nil end
-end
 
 -- ══════════════════════════════════════════════════════
 --  AIMBOT
@@ -320,11 +283,9 @@ end)
 
 -- ══════════════════════════════════════════════════════
 --  HITBOX EXPANDER
---  DÜZELTME: CharacterAdded bağlantısı + tüm yeni
---  karakterleri otomatik yakala
 -- ══════════════════════════════════════════════════════
-local OrigSizes   = {}  -- [part] = originalSize
-local HBConnections = {} -- [player] = {conn1, conn2}
+local OrigSizes   = {}
+local HBConnections = {}
 
 local HB_PARTS = {
     "Head","UpperTorso","LowerTorso","HumanoidRootPart",
@@ -332,7 +293,6 @@ local HB_PARTS = {
     "LeftHand","RightHand",
     "LeftUpperLeg","RightUpperLeg","LeftLowerLeg","RightLowerLeg",
     "LeftFoot","RightFoot",
-    -- R6 isimleri
     "Torso","Left Arm","Right Arm","Left Leg","Right Leg",
 }
 
@@ -362,23 +322,17 @@ end
 
 local function SetupHitboxForPlayer(p)
     if p == LP then return end
-    -- Eski bağlantıları temizle
     if HBConnections[p] then
         for _, conn in ipairs(HBConnections[p]) do conn:Disconnect() end
     end
     HBConnections[p] = {}
-
-    -- Mevcut karakter
     if p.Character then
         if C.HitboxExpander then ExpandChar(p.Character) end
     end
-
-    -- Yeni karakter geldiğinde
     local conn1 = p.CharacterAdded:Connect(function(ch)
-        task.wait(0.1) -- karakter tam yüklenmesi için bekle
+        task.wait(0.1)
         if C.HitboxExpander then ExpandChar(ch) end
     end)
-    -- Karakter gidince eski size'ları temizle
     local conn2 = p.CharacterRemoving:Connect(function(ch)
         RestoreChar(ch)
     end)
@@ -390,7 +344,6 @@ local function SetupAllHitboxes()
     for _, p in ipairs(Players:GetPlayers()) do SetupHitboxForPlayer(p) end
 end
 
--- Yeni oyuncu gelince bağlan
 Players.PlayerAdded:Connect(SetupHitboxForPlayer)
 Players.PlayerRemoving:Connect(function(p)
     if HBConnections[p] then
@@ -399,7 +352,6 @@ Players.PlayerRemoving:Connect(function(p)
     end
 end)
 
--- Heartbeat: aktifken sürekli uygula (boyut sıfırlanan oyunlar için)
 RunService.Heartbeat:Connect(function()
     if not C.HitboxExpander then return end
     for _, p in ipairs(Players:GetPlayers()) do
@@ -417,177 +369,132 @@ local function RestoreAllHitboxes()
 end
 
 -- ══════════════════════════════════════════════════════
---  ESP SİSTEMİ
---
---  DÜZELTMELER:
---  1. ESP "donması" → Humanoid.Died event + Health <= 0 + Dead state → anında gizle
---  2. Hayalet ESP → karakterin Parent'ı nil mi kontrol
---  3. Chams → SelectionBox yerine Highlight (doğru API)
---  4. Karakter spawn/respawn → CharacterAdded ile ESP yeniden kur
+--  ESP — FRESH DRAW
 -- ══════════════════════════════════════════════════════
+local _frameDrawings = {}
 
-local ESP  = {}  -- [player] = {drawing nesneleri}
-local DIED = {}  -- [player] = bool (öldü mü)
-
-local SK_JOINTS = {
-    -- R15
-    {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
-    {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
-    {"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
-    {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
-    {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
-    -- R6
-    {"Head","Torso"},{"Torso","Left Arm"},{"Torso","Right Arm"},
-    {"Torso","Left Leg"},{"Torso","Right Leg"},
-}
-
-local function ND(t, p)
+local function FD(t, props)
     local d = Drawing.new(t)
-    for k,v in pairs(p or {}) do d[k]=v end
+    for k, v in pairs(props) do d[k] = v end
+    d.Visible = true
+    table.insert(_frameDrawings, d)
     return d
 end
 
--- Tüm ESP nesnelerini gizle
-local function HideESP(e)
-    if not e then return end
-    local function hv(v) if type(v)=="userdata" then pcall(function() v.Visible=false end) end end
-    for k,v in pairs(e) do
-        if k=="Sk" then for _,l in ipairs(v) do hv(l) end
-        else hv(v) end
+local function ClearFrame()
+    for i = #_frameDrawings, 1, -1 do
+        pcall(function() _frameDrawings[i]:Remove() end)
+        _frameDrawings[i] = nil
     end
 end
 
--- ESP nesnelerini sil
-local function KillESP(p)
-    local e = ESP[p]; if not e then return end
-    local function rm(v) if type(v)=="userdata" then pcall(function() v:Remove() end) end end
-    for k,v in pairs(e) do
-        if k=="Sk" then for _,l in ipairs(v) do rm(l) end
-        else rm(v) end
-    end
-    ESP[p] = nil
+-- ══════════════════════════════════════════════════════
+--  CHAMS
+-- ══════════════════════════════════════════════════════
+local ChamsHL = {}
+
+local function IsAlly(p)
+    return p.Team ~= nil and p.Team == LP.Team
 end
 
--- ESP nesnelerini oluştur
-local function MakeESP(p)
-    if p==LP then return end
-    -- Önce eskisini sil
-    if ESP[p] then KillESP(p) end
-
-    local e = {
-        -- Köşe kutusu — 8 line
-        CTL1=ND("Line",{Visible=false,Thickness=2,Color=Color3.fromRGB(255,50,50)}),
-        CTL2=ND("Line",{Visible=false,Thickness=2,Color=Color3.fromRGB(255,50,50)}),
-        CTR1=ND("Line",{Visible=false,Thickness=2,Color=Color3.fromRGB(255,50,50)}),
-        CTR2=ND("Line",{Visible=false,Thickness=2,Color=Color3.fromRGB(255,50,50)}),
-        CBL1=ND("Line",{Visible=false,Thickness=2,Color=Color3.fromRGB(255,50,50)}),
-        CBL2=ND("Line",{Visible=false,Thickness=2,Color=Color3.fromRGB(255,50,50)}),
-        CBR1=ND("Line",{Visible=false,Thickness=2,Color=Color3.fromRGB(255,50,50)}),
-        CBR2=ND("Line",{Visible=false,Thickness=2,Color=Color3.fromRGB(255,50,50)}),
-        -- İsim
-        Nam = ND("Text",{Visible=false,Size=13,Center=true,Outline=true,
-            Color=Color3.fromRGB(255,255,255),OutlineColor=Color3.fromRGB(0,0,0),
-            Text=p.Name,Font=Drawing.Fonts.UI}),
-        -- HP bar arka plan
-        HBg = ND("Line",{Visible=false,Thickness=5,Color=Color3.fromRGB(20,20,20)}),
-        -- HP bar dolgu
-        HFg = ND("Line",{Visible=false,Thickness=3,Color=Color3.fromRGB(0,220,0)}),
-        -- HP yüzde
-        HPc = ND("Text",{Visible=false,Size=10,Center=true,Outline=true,
-            Color=Color3.fromRGB(255,255,255),OutlineColor=Color3.fromRGB(0,0,0),
-            Font=Drawing.Fonts.Monospace}),
-        -- Mesafe
-        Dst = ND("Text",{Visible=false,Size=11,Center=true,Outline=true,
-            Color=Color3.fromRGB(180,180,180),OutlineColor=Color3.fromRGB(0,0,0),
-            Font=Drawing.Fonts.Monospace}),
-        -- Tracer
-        Trc = ND("Line",{Visible=false,Thickness=1,Color=Color3.fromRGB(255,50,50)}),
-        -- Head dot
-        HDt = ND("Circle",{Visible=false,Filled=true,Color=Color3.fromRGB(255,50,50),Radius=4}),
-        -- Skeleton
-        Sk  = {},
-    }
-    for i=1,#SK_JOINTS do
-        e.Sk[i] = ND("Line",{Visible=false,Thickness=1,Color=Color3.fromRGB(255,210,50)})
+local function GetOrCreateHL(ch, name, depthMode)
+    local hl = ch:FindFirstChild(name)
+    if not hl or not hl:IsA("Highlight") then
+        if hl then pcall(function() hl:Destroy() end) end
+        hl = Instance.new("Highlight")
+        hl.Name = name
+        hl.Adornee = ch
+        hl.DepthMode = depthMode
+        hl.Parent = ch
     end
-    ESP[p] = e
+    return hl
+end
 
-    -- ÖNEMLİ: Humanoid.Died bağlantısı — anında ESP kapat
-    -- Bu bağlantı karaktere bağlı, karakter yenilenince otomatik kopar
+local function ApplyChams(p)
+    if not C.Chams then return end
     local ch = p.Character
-    if ch then
-        local hum = ch:FindFirstChildOfClass("Humanoid")
-        if hum then
-            hum.Died:Connect(function()
-                DIED[p] = true
-                HideESP(ESP[p])
-                -- Chams'ı da kaldır
-                local hl = ch:FindFirstChild("_RDXHl")
-                if hl then hl.Enabled = false end
-            end)
+    if not ch or not ch.Parent then return end
+
+    if C.ChamsTeamMode then
+        local ally = IsAlly(p)
+        if ally then
+            local hlW = GetOrCreateHL(ch, "_RDXHl_W", Enum.HighlightDepthMode.AlwaysOnTop)
+            hlW.FillColor           = Color3.fromRGB(0, 255, 80)
+            hlW.FillTransparency    = math.clamp(C.ChamsAllyAlpha / 100, 0, 1)
+            hlW.OutlineColor        = Color3.fromRGB(0, 255, 80)
+            hlW.OutlineTransparency = 0.3
+            hlW.Enabled             = true
+            local old = ch:FindFirstChild("_RDXHl_N")
+            if old then pcall(function() old.Enabled = false end) end
+        else
+            local hlW = GetOrCreateHL(ch, "_RDXHl_W", Enum.HighlightDepthMode.AlwaysOnTop)
+            hlW.FillColor           = Color3.fromRGB(255, 210, 0)
+            hlW.FillTransparency    = math.clamp(C.ChamsAlpha / 100, 0, 1)
+            hlW.OutlineColor        = Color3.fromRGB(255, 210, 0)
+            hlW.OutlineTransparency = 0
+            hlW.Enabled             = true
+            local hlN = GetOrCreateHL(ch, "_RDXHl_N", Enum.HighlightDepthMode.Occluded)
+            hlN.FillColor           = Color3.fromRGB(255, 40, 40)
+            hlN.FillTransparency    = math.clamp(C.ChamsAlpha / 100, 0, 1)
+            hlN.OutlineColor        = Color3.fromRGB(255, 40, 40)
+            hlN.OutlineTransparency = 0
+            hlN.Enabled             = true
+        end
+    else
+        local hlW = GetOrCreateHL(ch, "_RDXHl_W", Enum.HighlightDepthMode.AlwaysOnTop)
+        local r,g,b = C.ChamsR/255, C.ChamsG/255, C.ChamsB/255
+        hlW.FillColor           = Color3.new(r,g,b)
+        hlW.FillTransparency    = math.clamp(C.ChamsAlpha / 100, 0, 1)
+        hlW.OutlineColor        = Color3.new(r,g,b)
+        hlW.OutlineTransparency = 0
+        hlW.Enabled             = true
+        local old = ch:FindFirstChild("_RDXHl_N")
+        if old then pcall(function() old.Enabled = false end) end
+    end
+end
+
+local function RemoveChams(p)
+    local cache = ChamsHL[p]
+    if cache then
+        pcall(function() if cache.W then cache.W:Destroy() end end)
+        pcall(function() if cache.N then cache.N:Destroy() end end)
+        ChamsHL[p] = nil
+    end
+    if p.Character then
+        for _, obj in ipairs(p.Character:GetChildren()) do
+            if obj:IsA("Highlight") and (obj.Name=="_RDXHl_W" or obj.Name=="_RDXHl_N") then
+                pcall(function() obj:Destroy() end)
+            end
         end
     end
 end
 
--- CHAMS — Highlight instance kullanıyoruz (SelectionBox değil)
--- Highlight duvar arkasından da görünür, adornee gerekmiyor
-local function ApplyChams(p)
-    local ch = p.Character; if not ch then return end
-    local hl = ch:FindFirstChild("_RDXHl")
-    if not hl then
-        hl = Instance.new("Highlight")
-        hl.Name = "_RDXHl"
-        hl.Adornee = ch
-        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop  -- duvar arkası göster
-        hl.Parent = ch
-    end
-    local r,g,b = C.ChamsR/255, C.ChamsG/255, C.ChamsB/255
-    hl.FillColor       = Color3.new(r,g,b)
-    hl.FillTransparency = C.ChamsAlpha / 100
-    hl.OutlineColor    = Color3.new(r,g,b)
-    hl.OutlineTransparency = 0
-    hl.Enabled         = true
+local function OnCharacterAdded_Chams(p)
+    ChamsHL[p] = nil
 end
 
-local function RemoveChams(p)
-    local ch = p.Character; if not ch then return end
-    local hl = ch:FindFirstChild("_RDXHl")
-    if hl then hl.Enabled = false end
-end
-
--- Oyuncu/karakter event'leri
+-- ══════════════════════════════════════════════════════
+--  OYUNCU SETUP
+-- ══════════════════════════════════════════════════════
 local function SetupPlayer(p)
     if p == LP then return end
-    DIED[p] = false
-    MakeESP(p)
-
-    -- Karakter değişince: ESP yeniden kur, died flag sıfırla
     p.CharacterAdded:Connect(function(ch)
-        DIED[p] = false
+        OnCharacterAdded_Chams(p)
         task.wait(0.15)
-        MakeESP(p)
-        -- Yeni karaktere hitbox uygula
         if C.HitboxExpander then
             task.wait(0.1)
             ExpandChar(ch)
         end
-        -- Yeni humanoid died bağlantısı MakeESP içinde yapılıyor
     end)
-
     p.CharacterRemoving:Connect(function(ch)
-        -- Karakter gidince tüm ESP'yi anında gizle
-        HideESP(ESP[p])
+        RemoveChams(p)
         RestoreChar(ch)
-        -- Eski highlight kaldır
-        local hl = ch:FindFirstChild("_RDXHl")
-        if hl then hl.Enabled = false end
     end)
 end
 
 Players.PlayerAdded:Connect(SetupPlayer)
 Players.PlayerRemoving:Connect(function(p)
-    KillESP(p)
-    DIED[p] = nil
+    RemoveChams(p)
     if HBConnections[p] then
         for _, conn in ipairs(HBConnections[p]) do conn:Disconnect() end
         HBConnections[p] = nil
@@ -598,192 +505,143 @@ for _, p in ipairs(Players:GetPlayers()) do
     SetupHitboxForPlayer(p)
 end
 
--- Köşe kutusu çiz
-local function DrawCB(e, x, y, w, h, col, thick)
-    local cw = math.max(w*0.22, 5)
-    local ch = math.max(h*0.18, 5)
-
-    local function SL(ln, fx, fy, tx, ty)
-        ln.From=Vector2.new(fx,fy); ln.To=Vector2.new(tx,ty)
-        ln.Color=col; ln.Thickness=thick; ln.Visible=true
-    end
-
-    SL(e.CTL1, x,   y,   x+cw, y)
-    SL(e.CTL2, x,   y,   x,    y+ch)
-    SL(e.CTR1, x+w, y,   x+w-cw, y)
-    SL(e.CTR2, x+w, y,   x+w,  y+ch)
-    SL(e.CBL1, x,   y+h, x+cw, y+h)
-    SL(e.CBL2, x,   y+h, x,    y+h-ch)
-    SL(e.CBR1, x+w, y+h, x+w-cw, y+h)
-    SL(e.CBR2, x+w, y+h, x+w,  y+h-ch)
-end
-
-local function HideCB(e)
-    for _,k in ipairs({"CTL1","CTL2","CTR1","CTR2","CBL1","CBL2","CBR1","CBR2"}) do
-        e[k].Visible=false
-    end
-end
-
 -- ══════════════════════════════════════════════════════
 --  ANA ESP RENDER DÖNGÜSÜ
 -- ══════════════════════════════════════════════════════
+local SK_JOINTS = {
+    {"Head","UpperTorso"},{"Head","Torso"},
+    {"UpperTorso","LowerTorso"},
+    {"UpperTorso","LeftUpperArm"},{"Torso","Left Arm"},
+    {"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
+    {"UpperTorso","RightUpperArm"},{"Torso","Right Arm"},
+    {"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
+    {"LowerTorso","LeftUpperLeg"},{"Torso","Left Leg"},
+    {"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
+    {"LowerTorso","RightUpperLeg"},{"Torso","Right Leg"},
+    {"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
+}
+
 RunService.RenderStepped:Connect(function()
-    local vp   = CAM().ViewportSize
-    local myHRP = HRPF()
-    local anyOn = C.BoxESP or C.NameESP or C.HealthESP or C.DistESP
-        or C.TracerESP or C.SkeletonESP or C.HeadDot
+    ClearFrame()
+
+    local anyOn = C.NameESP or C.HealthESP or C.DistESP
+        or C.TracerESP or C.HeadDot or C.WeaponESP or C.SkeletonESP
 
     for _, pl in ipairs(Players:GetPlayers()) do
         if pl == LP then continue end
-        local e = ESP[pl]
-        if not e then continue end
-
-        ----------------------------------------------------------------
-        -- GHOST ESP ENGELİ — 5 aşamalı kontrol
-        ----------------------------------------------------------------
         local ch  = pl.Character
-        -- 1. Karakter nesnesi var mı ve parent'ı workspace mi?
-        if not ch or not ch.Parent then
-            HideESP(e); RemoveChams(pl); continue
-        end
+        if not ch or not ch.Parent then RemoveChams(pl); continue end
         local hrp = ch:FindFirstChild("HumanoidRootPart")
         local hum = ch:FindFirstChildOfClass("Humanoid")
-        -- 2. Temel parçalar var mı?
-        if not hrp or not hum then HideESP(e); RemoveChams(pl); continue end
-        -- 3. HP sıfır mı?
-        if hum.Health <= 0 then HideESP(e); RemoveChams(pl); continue end
-        -- 4. Ölüm state'i mi?
-        if hum:GetState() == Enum.HumanoidStateType.Dead then
-            HideESP(e); RemoveChams(pl); continue
-        end
-        -- 5. Died flag (Humanoid.Died event'inden set edilir)
-        if DIED[pl] then HideESP(e); RemoveChams(pl); continue end
-        ----------------------------------------------------------------
+        if not hrp or hrp.Parent ~= ch then RemoveChams(pl); continue end
+        if not hum or hum.Health <= 0  then RemoveChams(pl); continue end
+        if hum:GetState() == Enum.HumanoidStateType.Dead then RemoveChams(pl); continue end
+        if C.Chams then ApplyChams(pl) else RemoveChams(pl) end
+    end
 
-        -- Hiçbir ESP özelliği kapalıysa chams hariç geç
-        if not anyOn then
-            HideESP(e)
-            if C.Chams then ApplyChams(pl) else RemoveChams(pl) end
-            continue
-        end
+    if not anyOn then return end
 
-        -- Pozisyon hesapla
+    local vp    = CAM().ViewportSize
+    local myHRP = HRPF()
+    local col   = Color3.fromRGB(255, 50, 50)
+
+    for _, pl in ipairs(Players:GetPlayers()) do
+        if pl == LP then continue end
+        local ch = pl.Character
+        if not ch or not ch.Parent then continue end
+        local hrp = ch:FindFirstChild("HumanoidRootPart")
+        if not hrp or hrp.Parent ~= ch then continue end
+        local hum = ch:FindFirstChildOfClass("Humanoid")
+        if not hum or hum.Health <= 0 then continue end
+        if hum:GetState() == Enum.HumanoidStateType.Dead then continue end
+
         local head    = ch:FindFirstChild("Head")
-        local headPos = head and head.Position + Vector3.new(0, 0.6, 0)
-                        or hrp.Position + Vector3.new(0, 2.8, 0)
+        local headPos = head and (head.Position + Vector3.new(0, 0.6, 0))
+                        or (hrp.Position + Vector3.new(0, 2.8, 0))
         local feetPos = hrp.Position - Vector3.new(0, 3.1, 0)
 
-        local hSP, hV, hZ = W2S(headPos)
-        local fSP, fV, fZ = W2S(feetPos)
+        local hSP, _, hZ = W2S(headPos)
+        local fSP, _, fZ = W2S(feetPos)
 
-        -- Z < 0 → kamera arkasında → tamamen gizle
-        if hZ <= 0 and fZ <= 0 then
-            HideESP(e)
-            if C.Chams then ApplyChams(pl) else RemoveChams(pl) end
-            continue
-        end
+        if hZ <= 0 and fZ <= 0 then continue end
 
-        -- Viewport marjı kontrolü
-        local M = 350
-        local onScr = (hSP.X>-M and hSP.X<vp.X+M and hSP.Y>-M and hSP.Y<vp.Y+M)
-                   or (fSP.X>-M and fSP.X<vp.X+M and fSP.Y>-M and fSP.Y<vp.Y+M)
+        local M = 400
+        local onScr = (hSP.X > -M and hSP.X < vp.X+M and hSP.Y > -M and hSP.Y < vp.Y+M)
+                   or (fSP.X > -M and fSP.X < vp.X+M and fSP.Y > -M and fSP.Y < vp.Y+M)
+        if not onScr then continue end
 
-        -- Box hesapla
         local bH = math.max(math.abs(hSP.Y - fSP.Y), 8)
         local bW = bH * 0.56
-        local bX = fSP.X - bW/2
-        local bY = hSP.Y
-        local col = Color3.fromRGB(255, 50, 50)
+        local cx = fSP.X
 
-        -- ═══ BOX ═══
-        if C.BoxESP and onScr then
-            DrawCB(e, bX, bY, bW, bH, col, C.BoxThick + 1)
-        else
-            HideCB(e)
-        end
-
-        -- ═══ İSİM ═══
-        if C.NameESP and onScr then
-            e.Nam.Position = Vector2.new(fSP.X, bY - 17)
-            e.Nam.Text     = pl.Name
-            e.Nam.Color    = Color3.fromRGB(255,255,255)
-            e.Nam.Visible  = true
-        else
-            e.Nam.Visible = false
-        end
-
-        -- ═══ HP BAR ═══
-        local hp  = math.clamp(hum.Health / math.max(hum.MaxHealth,1), 0, 1)
-        local hpR = math.floor((1-hp)*255)
-        local hpG = math.floor(hp*255)
-        if C.HealthESP and onScr then
-            local bx2  = bX - 7
-            e.HBg.From = Vector2.new(bx2, bY);      e.HBg.To = Vector2.new(bx2, bY+bH)
-            e.HBg.Thickness=5; e.HBg.Visible=true
-            e.HFg.From = Vector2.new(bx2, bY+bH*(1-hp)); e.HFg.To = Vector2.new(bx2, bY+bH)
-            e.HFg.Thickness=3; e.HFg.Color=Color3.fromRGB(hpR,hpG,0); e.HFg.Visible=true
-            e.HPc.Position = Vector2.new(bx2-8, bY+bH/2-6)
-            e.HPc.Text  = math.floor(hp*100).."%"
-            e.HPc.Color = Color3.fromRGB(hpR,hpG,0); e.HPc.Visible=true
-        else
-            e.HBg.Visible=false; e.HFg.Visible=false; e.HPc.Visible=false
-        end
-
-        -- ═══ MESAFE ═══
-        if C.DistESP and onScr and myHRP then
-            local d = math.floor((myHRP.Position - hrp.Position).Magnitude)
-            e.Dst.Position = Vector2.new(fSP.X, bY+bH+4)
-            e.Dst.Text     = d.." studs"
-            e.Dst.Visible  = true
-        else
-            e.Dst.Visible = false
-        end
-
-        -- ═══ TRACER ═══
-        if C.TracerESP and onScr then
-            local ty = C.TracerOrigin=="Bottom" and vp.Y
-                or C.TracerOrigin=="Middle" and vp.Y/2 or 0
-            e.Trc.From = Vector2.new(vp.X/2, ty)
-            e.Trc.To   = Vector2.new(fSP.X, fSP.Y)
-            e.Trc.Color = col; e.Trc.Visible=true
-        else
-            e.Trc.Visible=false
-        end
-
-        -- ═══ HEAD DOT ═══
-        if C.HeadDot and onScr then
-            local hsp2, hv2 = W2S(headPos)
-            if hv2 and hZ>0 then
-                e.HDt.Position = hsp2
-                e.HDt.Radius   = math.max(bW*0.09, 2.5)
-                e.HDt.Color    = col; e.HDt.Visible=true
-            else
-                e.HDt.Visible=false
+        if C.WeaponESP then
+            local wpn = GetWeapon(pl)
+            if wpn ~= "" then
+                FD("Text", {Text=wpn, Size=11, Center=true, Outline=true,
+                    Color=Color3.fromRGB(255,220,50), OutlineColor=Color3.fromRGB(0,0,0),
+                    Font=Drawing.Fonts.UI, Position=Vector2.new(cx, hSP.Y - 30)})
             end
-        else
-            e.HDt.Visible=false
         end
 
-        -- ═══ SKELETON ═══
-        for i, jt in ipairs(SK_JOINTS) do
-            local ln = e.Sk[i]
-            if C.SkeletonESP and onScr then
+        if C.NameESP then
+            FD("Text", {Text=pl.Name, Size=13, Center=true, Outline=true,
+                Color=Color3.fromRGB(255,255,255), OutlineColor=Color3.fromRGB(0,0,0),
+                Font=Drawing.Fonts.UI, Position=Vector2.new(cx, hSP.Y - 17)})
+        end
+
+        if C.HealthESP then
+            local hp  = math.clamp(hum.Health / math.max(hum.MaxHealth,1), 0, 1)
+            local hpR = math.floor((1-hp)*255)
+            local hpG = math.floor(hp*255)
+            local bx2  = cx - bW/2 - 7
+            local byTop = hSP.Y
+            local byBot = hSP.Y + bH
+            FD("Line", {From=Vector2.new(bx2, byTop), To=Vector2.new(bx2, byBot),
+                Thickness=5, Color=Color3.fromRGB(20,20,20)})
+            FD("Line", {From=Vector2.new(bx2, byTop + bH*(1-hp)), To=Vector2.new(bx2, byBot),
+                Thickness=3, Color=Color3.fromRGB(hpR, hpG, 0)})
+            FD("Text", {Text=math.floor(hp*100).."%", Size=10, Center=true, Outline=true,
+                Color=Color3.fromRGB(hpR, hpG, 0), OutlineColor=Color3.fromRGB(0,0,0),
+                Font=Drawing.Fonts.Monospace, Position=Vector2.new(bx2-8, byTop + bH/2 - 6)})
+        end
+
+        if C.DistESP and myHRP then
+            local d = math.floor((myHRP.Position - hrp.Position).Magnitude)
+            FD("Text", {Text=d.." studs", Size=11, Center=true, Outline=true,
+                Color=Color3.fromRGB(180,180,180), OutlineColor=Color3.fromRGB(0,0,0),
+                Font=Drawing.Fonts.Monospace, Position=Vector2.new(cx, hSP.Y + bH + 4)})
+        end
+
+        if C.TracerESP then
+            local ty = C.TracerOrigin=="Bottom" and vp.Y or C.TracerOrigin=="Middle" and vp.Y/2 or 0
+            FD("Line", {From=Vector2.new(vp.X/2, ty), To=Vector2.new(fSP.X, fSP.Y),
+                Thickness=1, Color=col})
+        end
+
+        if C.HeadDot then
+            local hsp2, _, hz2 = W2S(headPos)
+            if hz2 > 0 then
+                FD("Circle", {Position=hsp2, Radius=math.max(bW*0.09, 2.5),
+                    Filled=true, Color=col, Thickness=1})
+            end
+        end
+
+        if C.SkeletonESP then
+            local skColor = C.ChamsTeamMode
+                and ((pl.Team ~= nil and pl.Team == LP.Team) and Color3.fromRGB(0,255,80) or Color3.fromRGB(255,210,0))
+                or Color3.fromRGB(255,200,50)
+            for _, jt in ipairs(SK_JOINTS) do
                 local pA = ch:FindFirstChild(jt[1])
                 local pB = ch:FindFirstChild(jt[2])
                 if pA and pB then
-                    local sA, vA = W2S(pA.Position)
-                    local sB, vB = W2S(pB.Position)
-                    if vA or vB then
-                        ln.From=sA; ln.To=sB
-                        ln.Color=Color3.fromRGB(255,200,50)
-                        ln.Visible=true
-                    else ln.Visible=false end
-                else ln.Visible=false end
-            else ln.Visible=false end
+                    local sA, _, zA = W2S(pA.Position)
+                    local sB, _, zB = W2S(pB.Position)
+                    if zA > 0 or zB > 0 then
+                        FD("Line", {From=sA, To=sB, Thickness=1, Color=skColor})
+                    end
+                end
+            end
         end
-
-        -- ═══ CHAMS (Highlight — duvar arkası) ═══
-        if C.Chams then ApplyChams(pl) else RemoveChams(pl) end
     end
 end)
 
@@ -826,7 +684,6 @@ UserInputService.InputBegan:Connect(function(inp, gp)
     end
 end)
 
--- FLY
 local FlyBV, FlyBG, FlyConn
 local function KillFly()
     if FlyConn then FlyConn:Disconnect(); FlyConn=nil end
@@ -1040,23 +897,10 @@ local Win = Rayfield:CreateWindow({
 
 -- ─────────────────────
 --  TAB: COMBAT
+--  ❌ Silent Aim seksiyon ve butonları KALDIRILDI
 -- ─────────────────────
 local CT = Win:CreateTab("⚔️ Combat", 4483362458)
 
-CT:CreateSection("── Silent Aim ──")
-CT:CreateToggle({Name="Silent Aim",CurrentValue=C.SilentAim,Flag="SA",
-    Callback=function(v) C.SilentAim=v; if v then EnableSA() else DisableSA() end; SaveConfig() end})
-CT:CreateToggle({Name="SA  ·  FOV Dairesi",CurrentValue=C.SilentAimShowFOV,Flag="SAF",
-    Callback=function(v) C.SilentAimShowFOV=v; SaveConfig() end})
-CT:CreateSlider({Name="SA  ·  FOV",Range={10,800},Increment=5,Suffix="px",
-    CurrentValue=C.SilentAimFOV,Flag="SAFOV",
-    Callback=function(v) C.SilentAimFOV=v; SaveConfig() end})
-CT:CreateDropdown({Name="SA  ·  Hedef Kısım",
-    Options={"Head","UpperTorso","HumanoidRootPart"},
-    CurrentOption={C.SilentAimPart},Flag="SAP",
-    Callback=function(v) C.SilentAimPart=v[1]; SaveConfig() end})
-
-CT:CreateDivider()
 CT:CreateSection("── Aimbot ──")
 CT:CreateToggle({Name="Aimbot",CurrentValue=C.Aimbot,Flag="AB",
     Callback=function(v) C.Aimbot=v; SaveConfig() end})
@@ -1117,13 +961,6 @@ CT:CreateSlider({Name="Boyut",Range={2,30},Increment=0.5,
 -- ─────────────────────
 local ET = Win:CreateTab("👁️ ESP", 4483362458)
 
-ET:CreateSection("── Box ──")
-ET:CreateToggle({Name="Box ESP (Köşe Kutusu)",CurrentValue=C.BoxESP,Flag="BE",
-    Callback=function(v) C.BoxESP=v; SaveConfig() end})
-ET:CreateSlider({Name="Kalınlık",Range={1,5},Increment=1,
-    CurrentValue=C.BoxThick,Flag="BT",
-    Callback=function(v) C.BoxThick=v; SaveConfig() end})
-
 ET:CreateSection("── Etiketler ──")
 ET:CreateToggle({Name="İsim",CurrentValue=C.NameESP,Flag="NE",
     Callback=function(v) C.NameESP=v; SaveConfig() end})
@@ -1131,6 +968,8 @@ ET:CreateToggle({Name="Sağlık Barı + %",CurrentValue=C.HealthESP,Flag="HE",
     Callback=function(v) C.HealthESP=v; SaveConfig() end})
 ET:CreateToggle({Name="Mesafe",CurrentValue=C.DistESP,Flag="DE",
     Callback=function(v) C.DistESP=v; SaveConfig() end})
+ET:CreateToggle({Name="Silah Gösterimi",CurrentValue=C.WeaponESP,Flag="WpnE",
+    Callback=function(v) C.WeaponESP=v; SaveConfig() end})
 ET:CreateToggle({Name="Head Dot",CurrentValue=C.HeadDot,Flag="HD",
     Callback=function(v) C.HeadDot=v; SaveConfig() end})
 
@@ -1140,19 +979,38 @@ ET:CreateToggle({Name="Tracer",CurrentValue=C.TracerESP,Flag="TE",
 ET:CreateDropdown({Name="Tracer Noktası",Options={"Bottom","Middle","Top"},
     CurrentOption={C.TracerOrigin},Flag="TO",
     Callback=function(v) C.TracerOrigin=v[1]; SaveConfig() end})
-ET:CreateToggle({Name="Skeleton (İskelet)",CurrentValue=C.SkeletonESP,Flag="SE",
+ET:CreateToggle({Name="Skeleton (İskelet)",CurrentValue=C.SkeletonESP,Flag="SKE",
     Callback=function(v) C.SkeletonESP=v; SaveConfig() end})
 
 ET:CreateSection("── Chams (Highlight) ──")
-ET:CreateToggle({Name="Chams — Duvar Arkası",CurrentValue=C.Chams,Flag="Ch",
+ET:CreateToggle({Name="Chams — Aktif",CurrentValue=C.Chams,Flag="Ch",
     Callback=function(v)
         C.Chams=v
-        if not v then for _,p in ipairs(Players:GetPlayers()) do RemoveChams(p) end end
+        if not v then
+            for _,p in ipairs(Players:GetPlayers()) do RemoveChams(p) end
+        end
         SaveConfig()
     end})
-ET:CreateSlider({Name="Saydamlık",Range={0,95},Increment=5,Suffix="%",
+ET:CreateToggle({Name="Takım Renk Modu  🟢🔴🟡",CurrentValue=C.ChamsTeamMode,Flag="CTM",
+    Callback=function(v)
+        C.ChamsTeamMode=v
+        for _,p in ipairs(Players:GetPlayers()) do
+            if p ~= LP then RemoveChams(p) end
+        end
+        SaveConfig()
+        Rayfield:Notify({Title="Chams",
+            Content=v and "Takım Modu: Yeşil=Takım | Kırmızı=Düşman | Sarı=Duvar Arkası"
+                      or "Manuel Renk Moduna geçildi.",Duration=4})
+    end})
+ET:CreateLabel("  🟢 Takım arkadaşı   🔴 Görünür düşman   🟡 Duvar arkası düşman")
+ET:CreateSlider({Name="Saydamlık (Düşman/Manuel)",Range={0,95},Increment=5,Suffix="%",
     CurrentValue=C.ChamsAlpha,Flag="ChA",
     Callback=function(v) C.ChamsAlpha=v; SaveConfig() end})
+ET:CreateSlider({Name="Saydamlık (Takım Arkadaşı)",Range={0,95},Increment=5,Suffix="%",
+    CurrentValue=C.ChamsAllyAlpha,Flag="ChAA",
+    Callback=function(v) C.ChamsAllyAlpha=v; SaveConfig() end})
+ET:CreateSection("── Chams Manuel Renk ──")
+ET:CreateLabel("  (Takım Modu kapalıyken geçerli)")
 ET:CreateSlider({Name="Renk R",Range={0,255},Increment=5,CurrentValue=C.ChamsR,Flag="ChR",
     Callback=function(v) C.ChamsR=v; SaveConfig() end})
 ET:CreateSlider({Name="Renk G",Range={0,255},Increment=5,CurrentValue=C.ChamsG,Flag="ChG",
@@ -1349,7 +1207,6 @@ task.spawn(function()
     if C.FPSBoost   then ApplyFPSBoost()     end
     if C.GodMode    then SetGodMode(true)    end
     if C.Fly        then StartFly()          end
-    if C.SilentAim  then EnableSA()          end
     ApplyGravity()
     if not C.TimeFreeze then Lighting.ClockTime=C.ClockTime end
     if C.HitboxExpander then SetupAllHitboxes() end
