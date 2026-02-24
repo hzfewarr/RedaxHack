@@ -1,1563 +1,1365 @@
--- [[ REDAXHACK v4.0 — PHANTOM EDITION ]] --
-local CoreGui        = game:GetService("CoreGui")
-local TweenService   = game:GetService("TweenService")
+--[[
+██████╗ ███████╗██████╗  █████╗ ██╗  ██╗██╗  ██╗ █████╗  ██████╗██╗  ██╗
+██╔══██╗██╔════╝██╔══██╗██╔══██╗╚██╗██╔╝██║  ██║██╔══██╗██╔════╝██║ ██╔╝
+██████╔╝█████╗  ██║  ██║███████║ ╚███╔╝ ███████║███████║██║     █████╔╝
+██╔══██╗██╔══╝  ██║  ██║██╔══██║ ██╔██╗ ██╔══██║██╔══██║██║     ██╔═██╗
+██║  ██║███████╗██████╔╝██║  ██║██╔╝ ██╗██║  ██║██║  ██║╚██████╗██║  ██╗
+╚═╝  ╚═╝╚══════╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝
+                    RedaxHACK v1.0 BETA — Universal
+           Delta / Solara / Fluxus / Synapse X / KRNL Compatible
+--]]
+
+-- ══════════════════════════════════════════════════════
+--  EXECUTOR DETECTION
+-- ══════════════════════════════════════════════════════
+local ExecutorName = "Unknown"
+pcall(function()
+    if syn then ExecutorName = "Synapse X"
+    elseif KRNL_LOADED then ExecutorName = "KRNL"
+    elseif fluxus then ExecutorName = "Fluxus"
+    elseif Delta then ExecutorName = "Delta"
+    elseif solara then ExecutorName = "Solara"
+    elseif getexecutorname then
+        local ok, n = pcall(getexecutorname); if ok then ExecutorName = n end
+    end
+end)
+
+-- ══════════════════════════════════════════════════════
+--  SERVICES
+-- ══════════════════════════════════════════════════════
+local Players          = game:GetService("Players")
+local RunService       = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local RunService     = game:GetService("RunService")
-local Players        = game:GetService("Players")
-local LocalPlayer    = Players.LocalPlayer
-local Camera         = workspace.CurrentCamera
+local HttpService      = game:GetService("HttpService")
+local Lighting         = game:GetService("Lighting")
+local Workspace        = game:GetService("Workspace")
+local VirtualUser      = game:GetService("VirtualUser")
+local TeleportSvc      = game:GetService("TeleportService")
 
-if CoreGui:FindFirstChild("RedaxUltimate") then CoreGui.RedaxUltimate:Destroy() end
+local LP    = Players.LocalPlayer
+local Mouse = LP:GetMouse()
 
--- ==================== DİL SİSTEMİ ====================
-_G.ActiveLang = "TR"
+-- Kamera her zaman güncel
+local function CAM() return Workspace.CurrentCamera end
 
-local Lang = {
-    TR = {
-        hide_key        = "[INSERT] Gizle",
-        game_name       = "Arsenal",
-        footer          = "REDAXHACK  v4.0  ·  PHANTOM",
-        tab_combat      = "Combat",
-        tab_combat_desc = "Aimbot & Filtreler",
-        tab_visuals     = "Visuals",
-        tab_visuals_desc= "Görsel & ESP",
-        tab_misc        = "Misc",
-        tab_misc_desc   = "Ekstra",
-        tab_settings    = "Settings",
-        tab_settings_desc = "Ayarlar",
-        sec_aimbot      = "Aimbot",
-        aimbot_toggle   = "Aimbot",
-        aimbot_desc     = "Sağ tık basılıyken otomatik nişan",
-        fov_slider      = "FOV Radius",
-        smooth_slider   = "Smoothness",
-        sec_target      = "Hedef Noktası",
-        target_part     = "Kilitlenme Noktası",
-        target_part_desc= "Aimbotun neye kilitleniceğini seç",
-        target_head     = "Kafa",
-        target_torso    = "Gövde",
-        target_foot     = "Ayak",
-        sec_filters     = "Filtreler",
-        team_check      = "Takım Kontrolü",
-        team_check_desc = "Takım arkadaşlarını atla",
-        wall_check      = "Duvar Kontrolü",
-        wall_check_desc = "Duvar arkasındakileri atla",
-        sec_esp         = "ESP",
-        esp_toggle      = "ESP Vurgulama",
-        esp_desc        = "Oyuncuları renkle vurgula",
-        team_esp        = "Takım ESP",
-        team_esp_desc   = "Takım arkadaşlarını da göster",
-        health_bar      = "Can Barı",
-        health_bar_desc = "Oyuncuların yanında can barı göster",
-        sec_camera      = "Kamera",
-        cam_fov         = "Kamera FOV",
-        cam_fov_desc    = "Oyun görüş açısını ayarla",
-        sec_color_guide = "Renk Kılavuzu",
-        color_teammate  = "Takım arkadaşı (görünür)",
-        color_enemy_vis = "Düşman (görünür)",
-        color_enemy_wall= "Düşman (duvar arkası)",
-        sec_movement    = "Hareket",
-        walk_speed      = "Yürüme Hızı",
-        reset_speed     = "Hızı Sıfırla",
-        reset_speed_desc= "Normal hıza geri dön (16)",
-        sec_language    = "Dil / Language / Язык",
-        lang_label      = "Dil Seçimi",
-        lang_desc       = "Arayüz dilini değiştir",
-        lang_tr         = "🇹🇷  Türkçe",
-        lang_en         = "🇺🇸  English",
-        lang_ru         = "🇷🇺  Русский",
-    },
-    EN = {
-        hide_key        = "[INSERT] Hide",
-        game_name       = "Arsenal",
-        footer          = "REDAXHACK  v4.0  ·  PHANTOM",
-        tab_combat      = "Combat",
-        tab_combat_desc = "Aimbot & Filters",
-        tab_visuals     = "Visuals",
-        tab_visuals_desc= "Visual & ESP",
-        tab_misc        = "Misc",
-        tab_misc_desc   = "Extra",
-        tab_settings    = "Settings",
-        tab_settings_desc = "Options",
-        sec_aimbot      = "Aimbot",
-        aimbot_toggle   = "Aimbot",
-        aimbot_desc     = "Auto-aim while right mouse held",
-        fov_slider      = "FOV Radius",
-        smooth_slider   = "Smoothness",
-        sec_target      = "Target Point",
-        target_part     = "Lock-on Point",
-        target_part_desc= "Select what the aimbot locks onto",
-        target_head     = "Head",
-        target_torso    = "Torso",
-        target_foot     = "Foot",
-        sec_filters     = "Filters",
-        team_check      = "Team Check",
-        team_check_desc = "Skip teammates",
-        wall_check      = "Wall Check",
-        wall_check_desc = "Skip players behind walls",
-        sec_esp         = "ESP",
-        esp_toggle      = "ESP Highlight",
-        esp_desc        = "Highlight players with color",
-        team_esp        = "Team ESP",
-        team_esp_desc   = "Show teammates too",
-        health_bar      = "Health Bar",
-        health_bar_desc = "Show health bar next to players",
-        sec_camera      = "Camera",
-        cam_fov         = "Camera FOV",
-        cam_fov_desc    = "Adjust game field of view",
-        sec_color_guide = "Color Guide",
-        color_teammate  = "Teammate (visible)",
-        color_enemy_vis = "Enemy (visible)",
-        color_enemy_wall= "Enemy (behind wall)",
-        sec_movement    = "Movement",
-        walk_speed      = "Walk Speed",
-        reset_speed     = "Reset Speed",
-        reset_speed_desc= "Return to normal speed (16)",
-        sec_language    = "Dil / Language / Язык",
-        lang_label      = "Language",
-        lang_desc       = "Change interface language",
-        lang_tr         = "🇹🇷  Türkçe",
-        lang_en         = "🇺🇸  English",
-        lang_ru         = "🇷🇺  Русский",
-    },
-    RU = {
-        hide_key        = "[INSERT] Скрыть",
-        game_name       = "Arsenal",
-        footer          = "REDAXHACK  v4.0  ·  PHANTOM",
-        tab_combat      = "Бой",
-        tab_combat_desc = "Аимбот & Фильтры",
-        tab_visuals     = "Визуал",
-        tab_visuals_desc= "Визуал & ESP",
-        tab_misc        = "Разное",
-        tab_misc_desc   = "Прочее",
-        tab_settings    = "Настройки",
-        tab_settings_desc = "Параметры",
-        sec_aimbot      = "Аимбот",
-        aimbot_toggle   = "Аимбот",
-        aimbot_desc     = "Автоприцел при зажатой ПКМ",
-        fov_slider      = "Радиус FOV",
-        smooth_slider   = "Плавность",
-        sec_target      = "Точка прицела",
-        target_part     = "Точка прицеливания",
-        target_part_desc= "Выберите куда целится аимбот",
-        target_head     = "Голова",
-        target_torso    = "Туловище",
-        target_foot     = "Ноги",
-        sec_filters     = "Фильтры",
-        team_check      = "Проверка команды",
-        team_check_desc = "Пропускать союзников",
-        wall_check      = "Проверка стен",
-        wall_check_desc = "Пропускать за стенами",
-        sec_esp         = "ESP",
-        esp_toggle      = "ESP Подсветка",
-        esp_desc        = "Выделять игроков цветом",
-        team_esp        = "ESP команды",
-        team_esp_desc   = "Показывать союзников",
-        health_bar      = "Полоса здоровья",
-        health_bar_desc = "Показывать полосу HP рядом с игроком",
-        sec_camera      = "Камера",
-        cam_fov         = "FOV камеры",
-        cam_fov_desc    = "Настроить угол обзора",
-        sec_color_guide = "Цветовой гид",
-        color_teammate  = "Союзник (виден)",
-        color_enemy_vis = "Враг (виден)",
-        color_enemy_wall= "Враг (за стеной)",
-        sec_movement    = "Движение",
-        walk_speed      = "Скорость ходьбы",
-        reset_speed     = "Сбросить скорость",
-        reset_speed_desc= "Вернуть нормальную скорость (16)",
-        sec_language    = "Dil / Language / Язык",
-        lang_label      = "Язык",
-        lang_desc       = "Изменить язык интерфейса",
-        lang_tr         = "🇹🇷  Türkçe",
-        lang_en         = "🇺🇸  English",
-        lang_ru         = "🇷🇺  Русский",
-    },
+-- ══════════════════════════════════════════════════════
+--  GAME DETECTION
+-- ══════════════════════════════════════════════════════
+local GameID   = game.PlaceId
+local GameName = ({
+    [292439477]   = "Jailbreak",      [6872265039]  = "Blox Fruits",
+    [3233893879]  = "Tower of Hell",  [13822889]    = "Arsenal",
+    [189700877]   = "Phantom Forces", [2788229376]  = "Bad Business",
+    [3260590327]  = "Murder Mystery 2",[1962086868]  = "Brookhaven",
+    [606849621]   = "MeepCity",       [17017769292] = "Rivals",
+})[GameID] or "Universal"
+
+-- ══════════════════════════════════════════════════════
+--  CONFIG
+-- ══════════════════════════════════════════════════════
+local CFG_FOLDER = "RedaxHACK"
+local CFG_FILE   = CFG_FOLDER.."/config.json"
+
+local function EnsureDir()
+    if isfolder and not isfolder(CFG_FOLDER) then
+        if makefolder then makefolder(CFG_FOLDER) end
+    end
+end
+
+local DEFAULT = {
+    SilentAim=false, SilentAimFOV=120, SilentAimShowFOV=true, SilentAimPart="Head",
+    Aimbot=false, AimbotFOV=120, AimbotShowFOV=true,
+    AimbotPart="Head", AimbotSmooth=5, AimbotKey="RMB",
+    Prediction=false, PredictionMs=120,
+    TeamCheck=true, WallCheck=false,
+    Triggerbot=false, TrigDelay=80, HitChance=100,
+    HitboxExpander=false, HitboxSize=8,
+    BoxESP=false, BoxThick=1,
+    NameESP=false, HealthESP=false, DistESP=false,
+    TracerESP=false, TracerOrigin="Bottom",
+    SkeletonESP=false,
+    Chams=false, ChamsR=255, ChamsG=50, ChamsB=50, ChamsAlpha=60,
+    HeadDot=false,
+    Speed=false, WalkSpeed=16,
+    Fly=false, FlySpeed=60,
+    Noclip=false, InfJump=false,
+    BHop=false, HighJump=false, JumpPow=80, LongJump=false,
+    GodMode=false, AntiVoid=false, AntiAFK=false, AntiRagdoll=false,
+    Fullbright=false, NoFog=false, NoShadows=false,
+    Gravity=196.2, ClockTime=12, TimeFreeze=false, NoWeather=false,
+    ChatSpam=false, ChatMsg="Hello!", ChatDelay=3,
+    FPSBoost=false, ShowFPS=false,
 }
 
-local function T(key) return Lang[_G.ActiveLang][key] or key end
+local C = {}
+for k,v in pairs(DEFAULT) do C[k]=v end
 
--- ==================== GLOBAL AYARLAR ====================
-_G.AimbotEnabled    = false
-_G.AimbotFOV        = 120
-_G.AimbotSmooth     = 1
-_G.AimbotTarget     = "Head"
-_G.TeamCheck        = false
-_G.EspEnabled       = false
-_G.TeamEsp          = true
-_G.WallCheck        = true
-_G.HealthBarEnabled = true
-_G.CameraFOV        = 70
-_G.WalkSpeed        = 16
-
--- ==================== RENK PALETİ (Phantom - Koyu Mavi/Cyan) ====================
-local C = {
-    BG         = Color3.fromRGB(8,  10, 16),
-    BGDeep     = Color3.fromRGB(5,  6,  10),
-    Panel      = Color3.fromRGB(11, 14, 22),
-    Sidebar    = Color3.fromRGB(9,  11, 18),
-    Card       = Color3.fromRGB(14, 18, 28),
-    CardHover  = Color3.fromRGB(18, 23, 36),
-    CardActive = Color3.fromRGB(10, 22, 38),
-    Accent     = Color3.fromRGB(0,  180, 255),
-    AccentDim  = Color3.fromRGB(0,  100, 180),
-    AccentGlow = Color3.fromRGB(80, 210, 255),
-    AccentDark = Color3.fromRGB(0,  40,  80),
-    Text       = Color3.fromRGB(220, 230, 245),
-    SubText    = Color3.fromRGB(90,  110, 145),
-    Border     = Color3.fromRGB(25,  35,  60),
-    BorderBright = Color3.fromRGB(0, 120, 200),
-    SliderTrack= Color3.fromRGB(18, 24, 40),
-    Off        = Color3.fromRGB(30, 38, 58),
-    EspGreen   = Color3.fromRGB(0,  220, 90),
-    EspRed     = Color3.fromRGB(230, 50, 50),
-    EspYellow  = Color3.fromRGB(240, 200, 0),
-    Scan       = Color3.fromRGB(0,  180, 255),
-}
-
--- ==================== FOV DAİRESİ ====================
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Thickness  = 1.5
-FOVCircle.Color      = C.Accent
-FOVCircle.Visible    = false
-FOVCircle.Filled     = false
-FOVCircle.NumSides   = 80
-
--- ==================== SCREEN GUI ====================
-local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name           = "RedaxUltimate"
-ScreenGui.ResetOnSpawn   = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.DisplayOrder   = 999
-
--- ==================== TWEEN YARDIMCI ====================
-local function Tween(obj, t, props, style, dir)
-    style = style or Enum.EasingStyle.Quint
-    dir   = dir   or Enum.EasingDirection.Out
-    return TweenService:Create(obj, TweenInfo.new(t, style, dir), props)
+local function SaveConfig()
+    EnsureDir()
+    if writefile then pcall(function() writefile(CFG_FILE, HttpService:JSONEncode(C)) end) end
 end
-local function TPlay(obj, t, props, style, dir)
-    Tween(obj, t, props, style, dir):Play()
-end
-
--- ==================== DİL GÜNCELLEYİCİ ====================
-local _langUpdaters = {}
-local function OnLangUpdate(fn) table.insert(_langUpdaters, fn) end
-local function RefreshLang()
-    for _, fn in ipairs(_langUpdaters) do pcall(fn) end
-end
-
--- ==================== INTRO EKRANI ====================
-local IntroFrame = Instance.new("Frame", ScreenGui)
-IntroFrame.Size             = UDim2.new(1,0,1,0)
-IntroFrame.BackgroundColor3 = Color3.fromRGB(4,5,9)
-IntroFrame.ZIndex           = 300
-IntroFrame.BorderSizePixel  = 0
-
--- Arka plan grid çizgileri
-for i = 1, 20 do
-    local hl = Instance.new("Frame", IntroFrame)
-    hl.Size                 = UDim2.new(1,0,0,1)
-    hl.Position             = UDim2.new(0,0, i/20, 0)
-    hl.BackgroundColor3     = C.Accent
-    hl.BackgroundTransparency = 0.93
-    hl.BorderSizePixel      = 0
-    hl.ZIndex               = 300
-end
-for i = 1, 30 do
-    local vl = Instance.new("Frame", IntroFrame)
-    vl.Size                 = UDim2.new(0,1,1,0)
-    vl.Position             = UDim2.new(i/30,0,0,0)
-    vl.BackgroundColor3     = C.Accent
-    vl.BackgroundTransparency = 0.96
-    vl.BorderSizePixel      = 0
-    vl.ZIndex               = 300
-end
-
--- Merkez intro container
-local IC = Instance.new("Frame", IntroFrame)
-IC.Size               = UDim2.new(0,520,0,110)
-IC.Position           = UDim2.new(0.5,-260,0.5,-55)
-IC.BackgroundTransparency = 1
-IC.ZIndex             = 305
-
--- Animasyon tarama çizgisi (scan line)
-local ScanLine = Instance.new("Frame", IntroFrame)
-ScanLine.Size               = UDim2.new(1,0,0,2)
-ScanLine.Position           = UDim2.new(0,0,-0.02,0)
-ScanLine.BackgroundColor3   = C.Scan
-ScanLine.BackgroundTransparency = 0.4
-ScanLine.BorderSizePixel    = 0
-ScanLine.ZIndex             = 306
-
--- Sol logo kutusu
-local LogoOuter = Instance.new("Frame", IC)
-LogoOuter.Size             = UDim2.new(0,90,0,90)
-LogoOuter.Position         = UDim2.new(0,0,0.5,-45)
-LogoOuter.BackgroundColor3 = C.AccentDark
-LogoOuter.BorderSizePixel  = 0
-LogoOuter.ZIndex           = 306
-LogoOuter.BackgroundTransparency = 1
-Instance.new("UICorner", LogoOuter).CornerRadius = UDim.new(0,8)
-local LogoOuterStroke = Instance.new("UIStroke", LogoOuter)
-LogoOuterStroke.Color       = C.Accent
-LogoOuterStroke.Thickness   = 1.5
-LogoOuterStroke.Transparency = 1
-
-local LogoInner = Instance.new("Frame", LogoOuter)
-LogoInner.Size              = UDim2.new(1,-6,1,-6)
-LogoInner.Position          = UDim2.new(0,3,0,3)
-LogoInner.BackgroundColor3  = Color3.fromRGB(6,8,14)
-LogoInner.BorderSizePixel   = 0
-LogoInner.ZIndex            = 307
-Instance.new("UICorner", LogoInner).CornerRadius = UDim.new(0,6)
-
-local LogoText = Instance.new("TextLabel", LogoOuter)
-LogoText.Text              = "RX"
-LogoText.Size              = UDim2.new(1,0,1,0)
-LogoText.Font              = Enum.Font.GothamBlack
-LogoText.TextSize          = 36
-LogoText.TextColor3        = C.Accent
-LogoText.BackgroundTransparency = 1
-LogoText.ZIndex            = 308
-LogoText.TextTransparency  = 1
-
--- Dikey ayırıcı
-local IDivider = Instance.new("Frame", IC)
-IDivider.Size              = UDim2.new(0,2,0,0)
-IDivider.Position          = UDim2.new(0,104,0.5,0)
-IDivider.AnchorPoint       = Vector2.new(0,0.5)
-IDivider.BackgroundColor3  = C.Accent
-IDivider.BorderSizePixel   = 0
-IDivider.ZIndex            = 306
-
--- Sağ text grubu
-local ITG = Instance.new("Frame", IC)
-ITG.Size                   = UDim2.new(0,400,1,0)
-ITG.Position               = UDim2.new(0,116,0,0)
-ITG.BackgroundTransparency = 1
-ITG.ZIndex                 = 306
-
-local ITitle = Instance.new("TextLabel", ITG)
-ITitle.Text                = "REDAXHACK"
-ITitle.Size                = UDim2.new(1,0,0,58)
-ITitle.Position            = UDim2.new(0,0,0,4)
-ITitle.Font                = Enum.Font.GothamBlack
-ITitle.TextSize            = 48
-ITitle.TextColor3          = C.Text
-ITitle.BackgroundTransparency = 1
-ITitle.TextXAlignment      = Enum.TextXAlignment.Left
-ITitle.ZIndex              = 307
-ITitle.TextTransparency    = 1
-
--- "REDAX" vurgu rengi overlay
-local ITitleAccent = Instance.new("TextLabel", ITG)
-ITitleAccent.Text          = "REDAX"
-ITitleAccent.Size          = UDim2.new(1,0,0,58)
-ITitleAccent.Position      = UDim2.new(0,0,0,4)
-ITitleAccent.Font          = Enum.Font.GothamBlack
-ITitleAccent.TextSize      = 48
-ITitleAccent.TextColor3    = C.Accent
-ITitleAccent.BackgroundTransparency = 1
-ITitleAccent.TextXAlignment = Enum.TextXAlignment.Left
-ITitleAccent.ZIndex        = 308
-ITitleAccent.TextTransparency = 1
-
-local IEdition = Instance.new("TextLabel", ITG)
-IEdition.Text              = "PHANTOM EDITION  ·  v4.0"
-IEdition.Size              = UDim2.new(1,0,0,18)
-IEdition.Position          = UDim2.new(0,2,0,62)
-IEdition.Font              = Enum.Font.Code
-IEdition.TextSize          = 12
-IEdition.TextColor3        = C.Accent
-IEdition.BackgroundTransparency = 1
-IEdition.TextXAlignment    = Enum.TextXAlignment.Left
-IEdition.ZIndex            = 307
-IEdition.TextTransparency  = 1
-
-local IBy = Instance.new("TextLabel", ITG)
-IBy.Text                   = "by HzFewarr"
-IBy.Size                   = UDim2.new(1,0,0,16)
-IBy.Position               = UDim2.new(0,2,0,82)
-IBy.Font                   = Enum.Font.GothamMedium
-IBy.TextSize               = 11
-IBy.TextColor3             = C.SubText
-IBy.BackgroundTransparency = 1
-IBy.TextXAlignment         = Enum.TextXAlignment.Left
-IBy.ZIndex                 = 307
-IBy.TextTransparency       = 1
-
--- Loading bar
-local IBarBG = Instance.new("Frame", IntroFrame)
-IBarBG.Size                = UDim2.new(0,320,0,3)
-IBarBG.Position            = UDim2.new(0.5,-160,0.5,64)
-IBarBG.BackgroundColor3    = C.Border
-IBarBG.BorderSizePixel     = 0
-IBarBG.ZIndex              = 306
-IBarBG.BackgroundTransparency = 1
-Instance.new("UICorner", IBarBG).CornerRadius = UDim.new(1,0)
-
-local IBarFill = Instance.new("Frame", IBarBG)
-IBarFill.Size              = UDim2.new(0,0,1,0)
-IBarFill.BackgroundColor3  = C.Accent
-IBarFill.BorderSizePixel   = 0
-IBarFill.ZIndex            = 307
-Instance.new("UICorner", IBarFill).CornerRadius = UDim.new(1,0)
-
-local IBarPct = Instance.new("TextLabel", IntroFrame)
-IBarPct.Text               = "0%"
-IBarPct.Size               = UDim2.new(0,80,0,20)
-IBarPct.Position           = UDim2.new(0.5,168,0.5,56)
-IBarPct.Font               = Enum.Font.Code
-IBarPct.TextSize           = 11
-IBarPct.TextColor3         = C.Accent
-IBarPct.BackgroundTransparency = 1
-IBarPct.ZIndex             = 307
-IBarPct.TextTransparency   = 1
-
--- ==================== ANA MENÜ ====================
-local Main = Instance.new("Frame", ScreenGui)
-Main.Name              = "MainFrame"
-Main.Size              = UDim2.new(0,800,0,520)
-Main.Position          = UDim2.new(0.5,-400,2,0)
-Main.BackgroundColor3  = C.BG
-Main.BorderSizePixel   = 0
-Main.ClipsDescendants  = true
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0,8)
-local MainStroke = Instance.new("UIStroke", Main)
-MainStroke.Color       = C.Border
-MainStroke.Thickness   = 1.5
-
--- Köşe aksan çizgileri (CS2 menü stili)
-local function Corner(parent, x, y, w, h, color)
-    local f = Instance.new("Frame", parent)
-    f.Size              = UDim2.new(0,w,0,h)
-    f.Position          = UDim2.new(x<0 and 1 or 0, x<0 and x or x, y<0 and 1 or 0, y<0 and y or y)
-    f.BackgroundColor3  = color or C.Accent
-    f.BorderSizePixel   = 0
-    return f
-end
-Corner(Main,  0,  0, 30, 2)   -- TL yatay
-Corner(Main,  0,  0,  2,30)   -- TL dikey
-Corner(Main,-30,-2, 30, 2)   -- BR yatay
-Corner(Main, -2,-30,  2,30)  -- BR dikey
-
--- Arka plan desenli katman (subtle grid)
-local BGPattern = Instance.new("Frame", Main)
-BGPattern.Size              = UDim2.new(1,0,1,0)
-BGPattern.BackgroundTransparency = 1
-BGPattern.ZIndex            = 0
-for i=1,15 do
-    local gl = Instance.new("Frame", BGPattern)
-    gl.Size                 = UDim2.new(1,0,0,1)
-    gl.Position             = UDim2.new(0,0,i/15,0)
-    gl.BackgroundColor3     = C.Accent
-    gl.BackgroundTransparency = 0.97
-    gl.BorderSizePixel      = 0
-end
-
--- ========== HEADER ==========
-local Header = Instance.new("Frame", Main)
-Header.Size             = UDim2.new(1,0,0,48)
-Header.BackgroundColor3 = C.Panel
-Header.BorderSizePixel  = 0
-Header.ZIndex           = 2
-
--- Header alt çizgi (gradient efekt için iki katmanlı)
-local HLine1 = Instance.new("Frame", Header)
-HLine1.Size             = UDim2.new(1,0,0,1)
-HLine1.Position         = UDim2.new(0,0,1,-1)
-HLine1.BackgroundColor3 = C.Accent
-HLine1.BorderSizePixel  = 0
-HLine1.ZIndex           = 3
-
-local HLine2 = Instance.new("Frame", Header)
-HLine2.Size             = UDim2.new(1,0,0,1)
-HLine2.Position         = UDim2.new(0,0,1,-2)
-HLine2.BackgroundColor3 = C.AccentDim
-HLine2.BackgroundTransparency = 0.6
-HLine2.BorderSizePixel  = 0
-HLine2.ZIndex           = 3
-
--- Sol logo + isim
-local HLogoBox = Instance.new("Frame", Header)
-HLogoBox.Size           = UDim2.new(0,32,0,32)
-HLogoBox.Position       = UDim2.new(0,12,0.5,-16)
-HLogoBox.BackgroundColor3 = C.AccentDark
-HLogoBox.BorderSizePixel = 0
-Instance.new("UICorner", HLogoBox).CornerRadius = UDim.new(0,5)
-local HLogoBoxStroke = Instance.new("UIStroke", HLogoBox)
-HLogoBoxStroke.Color    = C.Accent
-HLogoBoxStroke.Thickness = 1
-
-local HLogoLbl = Instance.new("TextLabel", HLogoBox)
-HLogoLbl.Text           = "RX"
-HLogoLbl.Size           = UDim2.new(1,0,1,0)
-HLogoLbl.Font           = Enum.Font.GothamBlack
-HLogoLbl.TextSize       = 13
-HLogoLbl.TextColor3     = C.Accent
-HLogoLbl.BackgroundTransparency = 1
-HLogoLbl.ZIndex         = 3
-
-local HTitle = Instance.new("TextLabel", Header)
-HTitle.Text             = "REDAXHACK"
-HTitle.Size             = UDim2.new(0,160,1,0)
-HTitle.Position         = UDim2.new(0,50,0,0)
-HTitle.Font             = Enum.Font.GothamBlack
-HTitle.TextSize         = 14
-HTitle.TextColor3       = C.Text
-HTitle.BackgroundTransparency = 1
-HTitle.TextXAlignment   = Enum.TextXAlignment.Left
-HTitle.ZIndex           = 3
-
-local HBadge = Instance.new("Frame", Header)
-HBadge.Size             = UDim2.new(0,72,0,18)
-HBadge.Position         = UDim2.new(0,162,0.5,-9)
-HBadge.BackgroundColor3 = C.AccentDark
-HBadge.BorderSizePixel  = 0
-Instance.new("UICorner", HBadge).CornerRadius = UDim.new(1,0)
-local HBadgeStroke = Instance.new("UIStroke", HBadge)
-HBadgeStroke.Color      = C.AccentDim
-HBadgeStroke.Thickness  = 1
-local HBadgeLbl = Instance.new("TextLabel", HBadge)
-HBadgeLbl.Text          = "PHANTOM"
-HBadgeLbl.Size          = UDim2.new(1,0,1,0)
-HBadgeLbl.Font          = Enum.Font.Code
-HBadgeLbl.TextSize      = 9
-HBadgeLbl.TextColor3    = C.Accent
-HBadgeLbl.BackgroundTransparency = 1
-
-local HMid = Instance.new("TextLabel", Header)
-HMid.Text               = T("game_name")
-HMid.Font               = Enum.Font.GothamMedium
-HMid.TextSize           = 10
-HMid.TextColor3         = C.SubText
-HMid.Size               = UDim2.new(0,160,1,0)
-HMid.Position           = UDim2.new(0.5,-80,0,0)
-HMid.BackgroundTransparency = 1
-HMid.ZIndex             = 3
-
-local HRight = Instance.new("TextLabel", Header)
-HRight.Text             = T("hide_key")
-HRight.Font             = Enum.Font.Code
-HRight.TextSize         = 10
-HRight.TextColor3       = C.SubText
-HRight.Size             = UDim2.new(0,180,1,0)
-HRight.Position         = UDim2.new(1,-192,0,0)
-HRight.BackgroundTransparency = 1
-HRight.TextXAlignment   = Enum.TextXAlignment.Right
-HRight.ZIndex           = 3
-
-OnLangUpdate(function()
-    HMid.Text   = T("game_name")
-    HRight.Text = T("hide_key")
-end)
-
--- Header sürükleme
-local dragging, dragStart, startPos = false, nil, nil
-Header.InputBegan:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true; dragStart = i.Position; startPos = Main.Position
-    end
-end)
-Header.InputEnded:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-end)
-UserInputService.InputChanged:Connect(function(i)
-    if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
-        local d = i.Position - dragStart
-        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset+d.X, startPos.Y.Scale, startPos.Y.Offset+d.Y)
-    end
-end)
-
--- ========== SOL SIDEBAR ==========
-local SideBar = Instance.new("Frame", Main)
-SideBar.Size            = UDim2.new(0,175,1,-48)
-SideBar.Position        = UDim2.new(0,0,0,48)
-SideBar.BackgroundColor3 = C.Sidebar
-SideBar.BorderSizePixel = 0
-
-local SBRightLine = Instance.new("Frame", SideBar)
-SBRightLine.Size        = UDim2.new(0,1,1,0)
-SBRightLine.Position    = UDim2.new(1,-1,0,0)
-SBRightLine.BackgroundColor3 = C.Border
-SBRightLine.BorderSizePixel = 0
-
--- Oyuncu kutusu
-local PBox = Instance.new("Frame", SideBar)
-PBox.Size               = UDim2.new(1,-16,0,52)
-PBox.Position           = UDim2.new(0,8,0,12)
-PBox.BackgroundColor3   = C.Card
-PBox.BorderSizePixel    = 0
-Instance.new("UICorner", PBox).CornerRadius = UDim.new(0,6)
-local PBoxStroke = Instance.new("UIStroke", PBox)
-PBoxStroke.Color        = C.Border
-PBoxStroke.Thickness    = 1
-
--- Sol cyan aksan çubuğu
-local PBoxAccent = Instance.new("Frame", PBox)
-PBoxAccent.Size         = UDim2.new(0,2,0.65,0)
-PBoxAccent.Position     = UDim2.new(0,0,0.175,0)
-PBoxAccent.BackgroundColor3 = C.Accent
-PBoxAccent.BorderSizePixel = 0
-Instance.new("UICorner", PBoxAccent).CornerRadius = UDim.new(1,0)
-
--- Online nokta
-local OnlineDot = Instance.new("Frame", PBox)
-OnlineDot.Size          = UDim2.new(0,6,0,6)
-OnlineDot.Position      = UDim2.new(1,-14,0,10)
-OnlineDot.BackgroundColor3 = Color3.fromRGB(0,220,90)
-OnlineDot.BorderSizePixel = 0
-Instance.new("UICorner", OnlineDot).CornerRadius = UDim.new(1,0)
-
-local PName = Instance.new("TextLabel", PBox)
-PName.Text              = LocalPlayer.DisplayName
-PName.Size              = UDim2.new(1,-20,0,22)
-PName.Position          = UDim2.new(0,12,0,7)
-PName.Font              = Enum.Font.GothamBold
-PName.TextSize          = 12
-PName.TextColor3        = C.Text
-PName.BackgroundTransparency = 1
-PName.TextXAlignment    = Enum.TextXAlignment.Left
-
-local PTag = Instance.new("TextLabel", PBox)
-PTag.Text               = "@" .. LocalPlayer.Name
-PTag.Size               = UDim2.new(1,-20,0,14)
-PTag.Position           = UDim2.new(0,12,0,29)
-PTag.Font               = Enum.Font.Code
-PTag.TextSize           = 10
-PTag.TextColor3         = C.Accent
-PTag.BackgroundTransparency = 1
-PTag.TextXAlignment     = Enum.TextXAlignment.Left
-
-local SBSep = Instance.new("Frame", SideBar)
-SBSep.Size              = UDim2.new(1,-16,0,1)
-SBSep.Position          = UDim2.new(0,8,0,72)
-SBSep.BackgroundColor3  = C.Border
-SBSep.BorderSizePixel   = 0
-
--- ========== İÇERİK ALANI ==========
-local ContentArea = Instance.new("Frame", Main)
-ContentArea.Position    = UDim2.new(0,175,0,48)
-ContentArea.Size        = UDim2.new(1,-175,1,-48)
-ContentArea.BackgroundTransparency = 1
-ContentArea.ClipsDescendants = true
-
--- ==================== SAYFA SİSTEMİ ====================
-local Pages    = {}
-local TabBtns  = {}
-
-local function CreatePage(name)
-    local S = Instance.new("ScrollingFrame", ContentArea)
-    S.Size                 = UDim2.new(1,0,1,0)
-    S.BackgroundTransparency = 1
-    S.Visible              = false
-    S.ScrollBarThickness   = 3
-    S.ScrollBarImageColor3 = C.AccentDim
-    S.AutomaticCanvasSize  = Enum.AutomaticSize.Y
-    S.CanvasSize           = UDim2.new(0,0,0,0)
-    local Pad = Instance.new("UIPadding", S)
-    Pad.PaddingLeft   = UDim.new(0,18)
-    Pad.PaddingRight  = UDim.new(0,18)
-    Pad.PaddingTop    = UDim.new(0,16)
-    Pad.PaddingBottom = UDim.new(0,16)
-    local List = Instance.new("UIListLayout", S)
-    List.Padding    = UDim.new(0,7)
-    List.SortOrder  = Enum.SortOrder.LayoutOrder
-    Pages[name] = S
-    return S
-end
-
--- ==================== BİLEŞEN YARDIMCILARI ====================
-local lo = 0
-
--- Bölüm başlığı (section label) - glowing dot + text + line
-local function SectionLabel(parent, key)
-    lo += 1
-    local row = Instance.new("Frame", parent)
-    row.Size              = UDim2.new(1,0,0,26)
-    row.BackgroundTransparency = 1
-    row.LayoutOrder       = lo
-    row.BorderSizePixel   = 0
-
-    -- Sol parlayan nokta
-    local dot = Instance.new("Frame", row)
-    dot.Size              = UDim2.new(0,5,0,5)
-    dot.Position          = UDim2.new(0,0,0.5,-2)
-    dot.BackgroundColor3  = C.Accent
-    dot.BorderSizePixel   = 0
-    Instance.new("UICorner", dot).CornerRadius = UDim.new(1,0)
-
-    local lbl = Instance.new("TextLabel", row)
-    lbl.Text              = T(key):upper()
-    lbl.Size              = UDim2.new(0,140,1,0)
-    lbl.Position          = UDim2.new(0,12,0,0)
-    lbl.Font              = Enum.Font.Code
-    lbl.TextSize          = 10
-    lbl.TextColor3        = C.Accent
-    lbl.BackgroundTransparency = 1
-    lbl.TextXAlignment    = Enum.TextXAlignment.Left
-
-    -- Sağa uzanan ince çizgi
-    local line = Instance.new("Frame", row)
-    line.Size             = UDim2.new(1,-158,0,1)
-    line.Position         = UDim2.new(0,154,0.5,0)
-    line.BackgroundColor3 = C.Border
-    line.BorderSizePixel  = 0
-    Instance.new("UICorner", line).CornerRadius = UDim.new(1,0)
-
-    OnLangUpdate(function() lbl.Text = T(key):upper() end)
-end
-
--- Toggle bileşeni (premium CS2 stili)
-local function AddToggle(parent, tKey, dKey, cb)
-    lo += 1
-    local F = Instance.new("Frame", parent)
-    F.Size              = UDim2.new(1,0,0, dKey and 56 or 44)
-    F.BackgroundColor3  = C.Card
-    F.BorderSizePixel   = 0
-    F.LayoutOrder       = lo
-    Instance.new("UICorner", F).CornerRadius = UDim.new(0,6)
-    local Stroke = Instance.new("UIStroke", F)
-    Stroke.Color        = C.Border
-    Stroke.Thickness    = 1
-
-    -- Sol aksan çizgisi (kapalıyken gizli)
-    local LeftBar = Instance.new("Frame", F)
-    LeftBar.Size        = UDim2.new(0,2,0.7,0)
-    LeftBar.Position    = UDim2.new(0,0,0.15,0)
-    LeftBar.BackgroundColor3 = C.Accent
-    LeftBar.BackgroundTransparency = 1
-    LeftBar.BorderSizePixel = 0
-    Instance.new("UICorner", LeftBar).CornerRadius = UDim.new(1,0)
-
-    local Lbl = Instance.new("TextLabel", F)
-    Lbl.Text            = T(tKey)
-    Lbl.Size            = UDim2.new(1,-68,0,22)
-    Lbl.Position        = UDim2.new(0,14,0, dKey and 8 or 11)
-    Lbl.TextColor3      = C.Text
-    Lbl.Font            = Enum.Font.GothamBold
-    Lbl.TextSize        = 12
-    Lbl.TextXAlignment  = Enum.TextXAlignment.Left
-    Lbl.BackgroundTransparency = 1
-
-    local Sub
-    if dKey then
-        Sub = Instance.new("TextLabel", F)
-        Sub.Text          = T(dKey)
-        Sub.Size          = UDim2.new(1,-68,0,14)
-        Sub.Position      = UDim2.new(0,14,0,29)
-        Sub.TextColor3    = C.SubText
-        Sub.Font          = Enum.Font.Gotham
-        Sub.TextSize      = 10
-        Sub.TextXAlignment = Enum.TextXAlignment.Left
-        Sub.BackgroundTransparency = 1
-    end
-
-    OnLangUpdate(function()
-        Lbl.Text = T(tKey)
-        if Sub then Sub.Text = T(dKey) end
-    end)
-
-    -- Switch track
-    local Track = Instance.new("Frame", F)
-    Track.Size          = UDim2.new(0,42,0,22)
-    Track.Position      = UDim2.new(1,-56,0.5,-11)
-    Track.BackgroundColor3 = C.Off
-    Track.BorderSizePixel = 0
-    Instance.new("UICorner", Track).CornerRadius = UDim.new(1,0)
-
-    -- Knob
-    local Knob = Instance.new("Frame", Track)
-    Knob.Size           = UDim2.new(0,16,0,16)
-    Knob.Position       = UDim2.new(0,3,0.5,-8)
-    Knob.BackgroundColor3 = Color3.fromRGB(140,155,175)
-    Knob.BorderSizePixel = 0
-    Instance.new("UICorner", Knob).CornerRadius = UDim.new(1,0)
-
-    local Btn = Instance.new("TextButton", F)
-    Btn.Size            = UDim2.new(1,0,1,0)
-    Btn.BackgroundTransparency = 1
-    Btn.Text            = ""
-
-    local state = false
-    Btn.MouseButton1Click:Connect(function()
-        state = not state
-        TPlay(Knob, 0.18, {
-            Position = state and UDim2.new(1,-19,0.5,-8) or UDim2.new(0,3,0.5,-8),
-            BackgroundColor3 = state and Color3.fromRGB(255,255,255) or Color3.fromRGB(140,155,175)
-        })
-        TPlay(Track, 0.18, {BackgroundColor3 = state and C.Accent or C.Off})
-        TPlay(Stroke, 0.18, {Color = state and C.AccentDim or C.Border})
-        TPlay(LeftBar, 0.18, {BackgroundTransparency = state and 0 or 1})
-        TPlay(F, 0.18, {BackgroundColor3 = state and C.CardActive or C.Card})
-        cb(state)
-    end)
-    Btn.MouseEnter:Connect(function()
-        if not state then TPlay(F, 0.1, {BackgroundColor3 = C.CardHover}) end
-    end)
-    Btn.MouseLeave:Connect(function()
-        if not state then TPlay(F, 0.1, {BackgroundColor3 = C.Card}) end
-    end)
-end
-
--- Slider bileşeni
-local function AddSlider(parent, tKey, min, max, default, suffix, cb)
-    lo += 1
-    local F = Instance.new("Frame", parent)
-    F.Size              = UDim2.new(1,0,0,68)
-    F.BackgroundColor3  = C.Card
-    F.BorderSizePixel   = 0
-    F.LayoutOrder       = lo
-    Instance.new("UICorner", F).CornerRadius = UDim.new(0,6)
-    local Stroke = Instance.new("UIStroke", F)
-    Stroke.Color        = C.Border
-    Stroke.Thickness    = 1
-
-    local Lbl = Instance.new("TextLabel", F)
-    Lbl.Size            = UDim2.new(0.6,0,0,26)
-    Lbl.Position        = UDim2.new(0,14,0,10)
-    Lbl.Text            = T(tKey)
-    Lbl.TextColor3      = C.Text
-    Lbl.Font            = Enum.Font.GothamBold
-    Lbl.TextSize        = 12
-    Lbl.TextXAlignment  = Enum.TextXAlignment.Left
-    Lbl.BackgroundTransparency = 1
-
-    OnLangUpdate(function() Lbl.Text = T(tKey) end)
-
-    local ValBox = Instance.new("Frame", F)
-    ValBox.Size         = UDim2.new(0,62,0,24)
-    ValBox.Position     = UDim2.new(1,-76,0,8)
-    ValBox.BackgroundColor3 = C.SliderTrack
-    ValBox.BorderSizePixel = 0
-    Instance.new("UICorner", ValBox).CornerRadius = UDim.new(0,5)
-    local ValStroke = Instance.new("UIStroke", ValBox)
-    ValStroke.Color     = C.Border
-    ValStroke.Thickness = 1
-
-    local ValLbl = Instance.new("TextLabel", ValBox)
-    ValLbl.Size         = UDim2.new(1,0,1,0)
-    ValLbl.Text         = default..(suffix or "")
-    ValLbl.TextColor3   = C.Accent
-    ValLbl.Font         = Enum.Font.Code
-    ValLbl.TextSize     = 12
-    ValLbl.BackgroundTransparency = 1
-
-    -- Track
-    local BarBG = Instance.new("Frame", F)
-    BarBG.Size          = UDim2.new(1,-28,0,4)
-    BarBG.Position      = UDim2.new(0,14,0,52)
-    BarBG.BackgroundColor3 = C.SliderTrack
-    BarBG.BorderSizePixel = 0
-    Instance.new("UICorner", BarBG).CornerRadius = UDim.new(1,0)
-
-    local Fill = Instance.new("Frame", BarBG)
-    Fill.Size           = UDim2.new((default-min)/(max-min),0,1,0)
-    Fill.BackgroundColor3 = C.Accent
-    Fill.BorderSizePixel = 0
-    Instance.new("UICorner", Fill).CornerRadius = UDim.new(1,0)
-
-    -- Parlayan knob
-    local Knob = Instance.new("Frame", BarBG)
-    Knob.Size           = UDim2.new(0,14,0,14)
-    Knob.AnchorPoint    = Vector2.new(0.5,0.5)
-    Knob.Position       = UDim2.new((default-min)/(max-min),0,0.5,0)
-    Knob.BackgroundColor3 = Color3.fromRGB(255,255,255)
-    Knob.BorderSizePixel = 0
-    Instance.new("UICorner", Knob).CornerRadius = UDim.new(1,0)
-    local KStroke = Instance.new("UIStroke", Knob)
-    KStroke.Color       = C.Accent
-    KStroke.Thickness   = 1.5
-    KStroke.Transparency = 0.3
-
-    local draggingS = false
-    local SBtn = Instance.new("TextButton", BarBG)
-    SBtn.Size           = UDim2.new(1,0,5,0)
-    SBtn.Position       = UDim2.new(0,0,-2,0)
-    SBtn.BackgroundTransparency = 1
-    SBtn.Text           = ""
-    SBtn.MouseButton1Down:Connect(function() draggingS = true end)
-    UserInputService.InputEnded:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then draggingS = false end
-    end)
-    RunService.RenderStepped:Connect(function()
-        if draggingS then
-            local rel = math.clamp((UserInputService:GetMouseLocation().X - BarBG.AbsolutePosition.X)/BarBG.AbsoluteSize.X,0,1)
-            local val = math.floor(min+(max-min)*rel)
-            Fill.Size       = UDim2.new(rel,0,1,0)
-            Knob.Position   = UDim2.new(rel,0,0.5,0)
-            ValLbl.Text     = val..(suffix or "")
-            cb(val)
-        end
-    end)
-end
-
--- Button bileşeni
-local function AddButton(parent, tKey, dKey, cb)
-    lo += 1
-    local F = Instance.new("Frame", parent)
-    F.Size              = UDim2.new(1,0,0, dKey and 56 or 44)
-    F.BackgroundColor3  = C.Card
-    F.BorderSizePixel   = 0
-    F.LayoutOrder       = lo
-    Instance.new("UICorner", F).CornerRadius = UDim.new(0,6)
-    local Stroke = Instance.new("UIStroke", F)
-    Stroke.Color        = C.Border
-    Stroke.Thickness    = 1
-
-    local Lbl = Instance.new("TextLabel", F)
-    Lbl.Text            = T(tKey)
-    Lbl.Size            = UDim2.new(1,-50,0,22)
-    Lbl.Position        = UDim2.new(0,14,0, dKey and 8 or 11)
-    Lbl.TextColor3      = C.Text
-    Lbl.Font            = Enum.Font.GothamBold
-    Lbl.TextSize        = 12
-    Lbl.TextXAlignment  = Enum.TextXAlignment.Left
-    Lbl.BackgroundTransparency = 1
-
-    local Sub
-    if dKey then
-        Sub = Instance.new("TextLabel", F)
-        Sub.Text          = T(dKey)
-        Sub.Size          = UDim2.new(1,-50,0,14)
-        Sub.Position      = UDim2.new(0,14,0,29)
-        Sub.TextColor3    = C.SubText
-        Sub.Font          = Enum.Font.Gotham
-        Sub.TextSize      = 10
-        Sub.TextXAlignment = Enum.TextXAlignment.Left
-        Sub.BackgroundTransparency = 1
-    end
-
-    OnLangUpdate(function()
-        Lbl.Text = T(tKey)
-        if Sub then Sub.Text = T(dKey) end
-    end)
-
-    local ABox = Instance.new("Frame", F)
-    ABox.Size           = UDim2.new(0,28,0,22)
-    ABox.Position       = UDim2.new(1,-42,0.5,-11)
-    ABox.BackgroundColor3 = C.AccentDark
-    ABox.BorderSizePixel = 0
-    Instance.new("UICorner", ABox).CornerRadius = UDim.new(0,5)
-    local ALbl = Instance.new("TextLabel", ABox)
-    ALbl.Text           = "›"
-    ALbl.Size           = UDim2.new(1,0,1,0)
-    ALbl.TextColor3     = C.Accent
-    ALbl.Font           = Enum.Font.GothamBold
-    ALbl.TextSize       = 18
-    ALbl.BackgroundTransparency = 1
-
-    local Btn = Instance.new("TextButton", F)
-    Btn.Size            = UDim2.new(1,0,1,0)
-    Btn.BackgroundTransparency = 1
-    Btn.Text            = ""
-    Btn.MouseButton1Click:Connect(function()
-        TPlay(F, 0.06, {BackgroundColor3 = C.AccentDark})
-        task.delay(0.12, function() TPlay(F, 0.12, {BackgroundColor3 = C.Card}) end)
-        cb()
-    end)
-    Btn.MouseEnter:Connect(function() TPlay(F, 0.1, {BackgroundColor3 = C.CardHover}) end)
-    Btn.MouseLeave:Connect(function() TPlay(F, 0.1, {BackgroundColor3 = C.Card}) end)
-end
-
--- 3'lü seçim butonu (target / lang seçici) - ortak yardımcı
-local function Make3BtnRow(parent, defs, getCurrent, onSelect, updateRefs)
-    lo += 1
-    local Row = Instance.new("Frame", parent)
-    Row.Size              = UDim2.new(1,0,0,48)
-    Row.BackgroundTransparency = 1
-    Row.BorderSizePixel   = 0
-    Row.LayoutOrder       = lo
-    local RL = Instance.new("UIListLayout", Row)
-    RL.FillDirection      = Enum.FillDirection.Horizontal
-    RL.Padding            = UDim.new(0,8)
-    RL.SortOrder          = Enum.SortOrder.LayoutOrder
-
-    local refs = {}
-    for i, d in ipairs(defs) do
-        local BF = Instance.new("Frame", Row)
-        BF.BackgroundColor3 = getCurrent() == d.id and C.CardActive or C.Card
-        BF.BorderSizePixel  = 0
-        BF.LayoutOrder      = i
-        Instance.new("UICorner", BF).CornerRadius = UDim.new(0,6)
-        local BS = Instance.new("UIStroke", BF)
-        BS.Color            = getCurrent() == d.id and C.Accent or C.Border
-        BS.Thickness        = 1
-
-        local Ind = Instance.new("Frame", BF)
-        Ind.Size            = UDim2.new(0.65,0,0,2)
-        Ind.Position        = UDim2.new(0.175,0,1,-2)
-        Ind.BackgroundColor3 = C.Accent
-        Ind.BackgroundTransparency = getCurrent() == d.id and 0 or 1
-        Ind.BorderSizePixel = 0
-        Instance.new("UICorner", Ind).CornerRadius = UDim.new(1,0)
-
-        local IcoL = Instance.new("TextLabel", BF)
-        IcoL.Text           = d.icon
-        IcoL.Size           = UDim2.new(0,22,1,-4)
-        IcoL.Position       = UDim2.new(0,8,0,2)
-        IcoL.Font           = Enum.Font.GothamBold
-        IcoL.TextSize       = 14
-        IcoL.TextColor3     = getCurrent() == d.id and C.Accent or Color3.fromRGB(60,80,110)
-        IcoL.BackgroundTransparency = 1
-
-        local TL2 = Instance.new("TextLabel", BF)
-        TL2.Size            = UDim2.new(1,-34,1,0)
-        TL2.Position        = UDim2.new(0,30,0,0)
-        TL2.Font            = Enum.Font.GothamBold
-        TL2.TextSize        = 12
-        TL2.TextColor3      = getCurrent() == d.id and C.Accent or C.SubText
-        TL2.BackgroundTransparency = 1
-        TL2.TextXAlignment  = Enum.TextXAlignment.Left
-
-        local BB = Instance.new("TextButton", BF)
-        BB.Size             = UDim2.new(1,0,1,0)
-        BB.BackgroundTransparency = 1
-        BB.Text             = ""
-
-        refs[d.id] = {frame=BF, stroke=BS, lbl=TL2, ico=IcoL, ind=Ind, id=d.id, tkey=d.tkey}
-
-        BB.MouseButton1Click:Connect(function()
-            onSelect(d.id)
-            for id2, r in pairs(refs) do
-                local on = id2 == d.id
-                TPlay(r.frame, 0.15, {BackgroundColor3 = on and C.CardActive or C.Card})
-                TPlay(r.stroke, 0.15, {Color = on and C.Accent or C.Border})
-                TPlay(r.lbl, 0.15, {TextColor3 = on and C.Accent or C.SubText})
-                TPlay(r.ico, 0.15, {TextColor3 = on and C.Accent or Color3.fromRGB(60,80,110)})
-                r.ind.BackgroundTransparency = on and 0 or 1
-            end
-        end)
-        BB.MouseEnter:Connect(function()
-            if getCurrent() ~= d.id then TPlay(BF, 0.1, {BackgroundColor3 = C.CardHover}) end
-        end)
-        BB.MouseLeave:Connect(function()
-            if getCurrent() ~= d.id then TPlay(BF, 0.1, {BackgroundColor3 = C.Card}) end
-        end)
-    end
-    if updateRefs then updateRefs(refs) end
-
-    OnLangUpdate(function()
-        for _, r in pairs(refs) do
-            if r.tkey then r.lbl.Text = T(r.tkey) end
-        end
-    end)
-
-    return refs
-end
-
--- ==================== SAYFALAR ====================
-local CombatPage   = CreatePage("Combat")
-local VisualsPage  = CreatePage("Visuals")
-local MiscPage     = CreatePage("Misc")
-local SettingsPage = CreatePage("Settings")
-
--- ========== COMBAT SAYFASI ==========
-lo = 0
-SectionLabel(CombatPage, "sec_aimbot")
-AddToggle(CombatPage, "aimbot_toggle", "aimbot_desc", function(v) _G.AimbotEnabled = v end)
-AddSlider(CombatPage, "fov_slider", 10, 800, 120, " px", function(v) _G.AimbotFOV = v end)
-AddSlider(CombatPage, "smooth_slider", 1, 20, 1, "x", function(v) _G.AimbotSmooth = v end)
-
-SectionLabel(CombatPage, "sec_target")
-
-lo += 1
-local TgtHdr = Instance.new("Frame", CombatPage)
-TgtHdr.Size             = UDim2.new(1,0,0,52)
-TgtHdr.BackgroundColor3 = C.Card
-TgtHdr.BorderSizePixel  = 0
-TgtHdr.LayoutOrder      = lo
-Instance.new("UICorner", TgtHdr).CornerRadius = UDim.new(0,6)
-Instance.new("UIStroke", TgtHdr).Color = C.Border
-local TgtHdrLbl = Instance.new("TextLabel", TgtHdr)
-TgtHdrLbl.Text          = T("target_part")
-TgtHdrLbl.Size          = UDim2.new(1,-14,0,22)
-TgtHdrLbl.Position      = UDim2.new(0,14,0,7)
-TgtHdrLbl.Font          = Enum.Font.GothamBold
-TgtHdrLbl.TextSize      = 12
-TgtHdrLbl.TextColor3    = C.Text
-TgtHdrLbl.BackgroundTransparency = 1
-TgtHdrLbl.TextXAlignment = Enum.TextXAlignment.Left
-local TgtHdrSub = Instance.new("TextLabel", TgtHdr)
-TgtHdrSub.Text          = T("target_part_desc")
-TgtHdrSub.Size          = UDim2.new(1,-14,0,14)
-TgtHdrSub.Position      = UDim2.new(0,14,0,29)
-TgtHdrSub.Font          = Enum.Font.Gotham
-TgtHdrSub.TextSize      = 10
-TgtHdrSub.TextColor3    = C.SubText
-TgtHdrSub.BackgroundTransparency = 1
-TgtHdrSub.TextXAlignment = Enum.TextXAlignment.Left
-OnLangUpdate(function()
-    TgtHdrLbl.Text = T("target_part")
-    TgtHdrSub.Text = T("target_part_desc")
-end)
-
-local targetDefs = {
-    {id="Head",       icon="◉", tkey="target_head"},
-    {id="UpperTorso", icon="▣", tkey="target_torso"},
-    {id="LeftFoot",   icon="▼", tkey="target_foot"},
-}
-Make3BtnRow(CombatPage, targetDefs,
-    function() return _G.AimbotTarget end,
-    function(id) _G.AimbotTarget = id end,
-    function(refs)
-        for _, r in pairs(refs) do r.frame.Size = UDim2.new(0,178,1,0); r.lbl.Text = T(r.tkey) end
-    end
-)
-
-SectionLabel(CombatPage, "sec_filters")
-AddToggle(CombatPage, "team_check", "team_check_desc", function(v) _G.TeamCheck = v end)
-AddToggle(CombatPage, "wall_check", "wall_check_desc", function(v) _G.WallCheck = v end)
-
--- ========== VISUALS SAYFASI ==========
-lo = 0
-SectionLabel(VisualsPage, "sec_camera")
-AddSlider(VisualsPage, "cam_fov", 40, 120, 70, "°", function(v)
-    _G.CameraFOV = v
-    Camera.FieldOfView = v
-end)
-
-SectionLabel(VisualsPage, "sec_esp")
-AddToggle(VisualsPage, "esp_toggle", "esp_desc", function(v) _G.EspEnabled = v end)
-AddToggle(VisualsPage, "team_esp", "team_esp_desc", function(v) _G.TeamEsp = v end)
-AddToggle(VisualsPage, "health_bar", "health_bar_desc", function(v)
-    _G.HealthBarEnabled = v
-    if not v then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character then
-                local hb = p.Character:FindFirstChild("RedaxHBar")
-                if hb then hb:Destroy() end
-            end
+local function LoadConfig()
+    EnsureDir()
+    if readfile and isfile and isfile(CFG_FILE) then
+        local ok,d = pcall(function() return HttpService:JSONDecode(readfile(CFG_FILE)) end)
+        if ok and type(d)=="table" then
+            for k,v in pairs(d) do if DEFAULT[k]~=nil then C[k]=v end end
         end
     end
-end)
-
-SectionLabel(VisualsPage, "sec_color_guide")
-lo += 1
-local CG = Instance.new("Frame", VisualsPage)
-CG.Size             = UDim2.new(1,0,0,84)
-CG.BackgroundColor3 = C.Card
-CG.BorderSizePixel  = 0
-CG.LayoutOrder      = lo
-Instance.new("UICorner", CG).CornerRadius = UDim.new(0,6)
-Instance.new("UIStroke", CG).Color = C.Border
-local guideKeys   = {"color_teammate","color_enemy_vis","color_enemy_wall"}
-local guideColors = {Color3.fromRGB(0,220,90), Color3.fromRGB(230,50,50), Color3.fromRGB(240,200,0)}
-local cgLbls = {}
-for i, key in ipairs(guideKeys) do
-    local dot = Instance.new("Frame", CG)
-    dot.Size            = UDim2.new(0,8,0,8)
-    dot.Position        = UDim2.new(0,14,0,12+(i-1)*24)
-    dot.BackgroundColor3 = guideColors[i]
-    dot.BorderSizePixel = 0
-    Instance.new("UICorner", dot).CornerRadius = UDim.new(1,0)
-    local lbl = Instance.new("TextLabel", CG)
-    lbl.Text            = T(key)
-    lbl.Size            = UDim2.new(1,-36,0,14)
-    lbl.Position        = UDim2.new(0,30,0,9+(i-1)*24)
-    lbl.Font            = Enum.Font.Gotham
-    lbl.TextSize        = 11
-    lbl.TextColor3      = C.SubText
-    lbl.BackgroundTransparency = 1
-    lbl.TextXAlignment  = Enum.TextXAlignment.Left
-    cgLbls[i] = {lbl=lbl, key=key}
 end
-OnLangUpdate(function() for _,d in ipairs(cgLbls) do d.lbl.Text = T(d.key) end end)
+LoadConfig()
 
--- ========== MISC SAYFASI ==========
-lo = 0
-SectionLabel(MiscPage, "sec_movement")
-AddSlider(MiscPage, "walk_speed", 16, 250, 16, " st/s", function(v)
-    _G.WalkSpeed = v
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = v
-    end
-end)
-AddButton(MiscPage, "reset_speed", "reset_speed_desc", function()
-    _G.WalkSpeed = 16
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = 16
-    end
-end)
+-- ══════════════════════════════════════════════════════
+--  UTILITY
+-- ══════════════════════════════════════════════════════
+local function CHAR()  return LP.Character end
+local function HRPF()
+    local c=CHAR(); return c and c:FindFirstChild("HumanoidRootPart")
+end
+local function HUMF()
+    local c=CHAR(); return c and c:FindFirstChildOfClass("Humanoid")
+end
 
--- ========== SETTINGS SAYFASI ==========
-lo = 0
-SectionLabel(SettingsPage, "sec_language")
+-- WorldToScreen — Z kontrolü dahil
+local function W2S(pos)
+    local ok, sp = pcall(function() return CAM():WorldToViewportPoint(pos) end)
+    if not ok then return Vector2.zero, false, -1 end
+    return Vector2.new(sp.X, sp.Y), sp.Z > 0, sp.Z
+end
 
-lo += 1
-local LangHdr = Instance.new("Frame", SettingsPage)
-LangHdr.Size            = UDim2.new(1,0,0,52)
-LangHdr.BackgroundColor3 = C.Card
-LangHdr.BorderSizePixel = 0
-LangHdr.LayoutOrder     = lo
-Instance.new("UICorner", LangHdr).CornerRadius = UDim.new(0,6)
-Instance.new("UIStroke", LangHdr).Color = C.Border
-local LHLbl = Instance.new("TextLabel", LangHdr)
-LHLbl.Text              = T("lang_label")
-LHLbl.Size              = UDim2.new(1,-14,0,22)
-LHLbl.Position          = UDim2.new(0,14,0,7)
-LHLbl.Font              = Enum.Font.GothamBold
-LHLbl.TextSize          = 12
-LHLbl.TextColor3        = C.Text
-LHLbl.BackgroundTransparency = 1
-LHLbl.TextXAlignment    = Enum.TextXAlignment.Left
-local LHSub = Instance.new("TextLabel", LangHdr)
-LHSub.Text              = T("lang_desc")
-LHSub.Size              = UDim2.new(1,-14,0,14)
-LHSub.Position          = UDim2.new(0,14,0,29)
-LHSub.Font              = Enum.Font.Gotham
-LHSub.TextSize          = 10
-LHSub.TextColor3        = C.SubText
-LHSub.BackgroundTransparency = 1
-LHSub.TextXAlignment    = Enum.TextXAlignment.Left
-OnLangUpdate(function() LHLbl.Text = T("lang_label"); LHSub.Text = T("lang_desc") end)
+-- Ekran merkezi
+local function SCRCTR()
+    local vp = CAM().ViewportSize
+    return Vector2.new(vp.X/2, vp.Y/2)
+end
 
-local langDefs = {
-    {id="TR", icon="🇹🇷", tkey="lang_tr"},
-    {id="EN", icon="🇺🇸", tkey="lang_en"},
-    {id="RU", icon="🇷🇺", tkey="lang_ru"},
-}
-local langRefs = {}
-Make3BtnRow(SettingsPage, langDefs,
-    function() return _G.ActiveLang end,
-    function(id)
-        _G.ActiveLang = id
-        RefreshLang()
-        for lid, r in pairs(langRefs) do
-            r.lbl.Text = Lang.TR["lang_"..lid:lower()]
+-- Takım kontrolü
+local function SameTeam(p)
+    if not C.TeamCheck then return false end
+    return p.Team ~= nil and p.Team == LP.Team
+end
+
+-- Line of Sight — yeni RaycastParams API
+local function HasLoS(from, to)
+    local dir = to - from
+    local rp  = RaycastParams.new()
+    rp.FilterType = Enum.RaycastFilterType.Exclude
+    rp.FilterDescendantsInstances = {CHAR() or Instance.new("Folder")}
+    local res = Workspace:Raycast(from, dir, rp)
+    if not res then return true end
+    -- Hedef karakterin bir parçasına çarptıysa LoS var
+    for _, pl in ipairs(Players:GetPlayers()) do
+        if pl ~= LP and pl.Character and res.Instance:IsDescendantOf(pl.Character) then
+            return true
         end
-    end,
-    function(refs)
-        langRefs = refs
-        for _, r in pairs(refs) do r.frame.Size = UDim2.new(0,178,1,0) end
-        for lid, r in pairs(refs) do r.lbl.Text = Lang.TR["lang_"..lid:lower()] end
     end
-)
-
--- ==================== TAB SİSTEMİ ====================
-local tabDefs = {
-    {name="Combat",   page="Combat",   icon="⬡", tkey="tab_combat",   dkey="tab_combat_desc"},
-    {name="Visuals",  page="Visuals",  icon="⬢", tkey="tab_visuals",  dkey="tab_visuals_desc"},
-    {name="Misc",     page="Misc",     icon="⬟", tkey="tab_misc",     dkey="tab_misc_desc"},
-    {name="Settings", page="Settings", icon="⚙", tkey="tab_settings", dkey="tab_settings_desc"},
-}
-
-local function SetActiveTab(name)
-    for _, td in ipairs(tabDefs) do
-        local d  = TabBtns[td.name]
-        local on = td.name == name
-        TPlay(d.bg,    0.15, {BackgroundTransparency = on and 0 or 1})
-        TPlay(d.ind,   0.15, {BackgroundTransparency = on and 0 or 1})
-        TPlay(d.lbl,   0.15, {TextColor3 = on and C.Text or C.SubText})
-        TPlay(d.ico,   0.15, {TextColor3 = on and C.Accent or Color3.fromRGB(40,55,85)})
-        TPlay(d.desc,  0.15, {TextColor3 = on and C.AccentDim or Color3.fromRGB(35,45,70)})
-        Pages[td.page].Visible = on
-    end
+    return false
 end
 
-for i, tab in ipairs(tabDefs) do
-    local Btn = Instance.new("TextButton", SideBar)
-    Btn.Size            = UDim2.new(1,-14,0,42)
-    Btn.Position        = UDim2.new(0,7,0,78+(i-1)*46)
-    Btn.BackgroundTransparency = 1
-    Btn.Text            = ""
-    Btn.BorderSizePixel = 0
-
-    local BG = Instance.new("Frame", Btn)
-    BG.Size             = UDim2.new(1,0,1,0)
-    BG.BackgroundColor3 = C.CardActive
-    BG.BackgroundTransparency = 1
-    BG.BorderSizePixel  = 0
-    Instance.new("UICorner", BG).CornerRadius = UDim.new(0,6)
-
-    local Ind = Instance.new("Frame", Btn)
-    Ind.Size            = UDim2.new(0,2,0.6,0)
-    Ind.Position        = UDim2.new(0,0,0.2,0)
-    Ind.BackgroundColor3 = C.Accent
-    Ind.BackgroundTransparency = 1
-    Ind.BorderSizePixel = 0
-    Instance.new("UICorner", Ind).CornerRadius = UDim.new(1,0)
-
-    local Ico = Instance.new("TextLabel", Btn)
-    Ico.Text            = tab.icon
-    Ico.Size            = UDim2.new(0,26,1,0)
-    Ico.Position        = UDim2.new(0,10,0,0)
-    Ico.Font            = Enum.Font.GothamBold
-    Ico.TextSize        = 15
-    Ico.TextColor3      = Color3.fromRGB(40,55,85)
-    Ico.BackgroundTransparency = 1
-
-    local Lbl = Instance.new("TextLabel", Btn)
-    Lbl.Text            = T(tab.tkey)
-    Lbl.Size            = UDim2.new(1,-40,0,18)
-    Lbl.Position        = UDim2.new(0,36,0,4)
-    Lbl.Font            = Enum.Font.GothamBold
-    Lbl.TextSize        = 12
-    Lbl.TextColor3      = C.SubText
-    Lbl.BackgroundTransparency = 1
-    Lbl.TextXAlignment  = Enum.TextXAlignment.Left
-
-    local Desc = Instance.new("TextLabel", Btn)
-    Desc.Text           = T(tab.dkey)
-    Desc.Size           = UDim2.new(1,-40,0,13)
-    Desc.Position       = UDim2.new(0,36,0,22)
-    Desc.Font           = Enum.Font.Code
-    Desc.TextSize       = 9
-    Desc.TextColor3     = Color3.fromRGB(35,45,70)
-    Desc.BackgroundTransparency = 1
-    Desc.TextXAlignment = Enum.TextXAlignment.Left
-
-    TabBtns[tab.name] = {bg=BG,ind=Ind,lbl=Lbl,ico=Ico,desc=Desc}
-    OnLangUpdate(function() Lbl.Text=T(tab.tkey); Desc.Text=T(tab.dkey) end)
-
-    Btn.MouseButton1Click:Connect(function() SetActiveTab(tab.name) end)
-    Btn.MouseEnter:Connect(function()
-        if not Pages[tab.page].Visible then TPlay(Lbl,0.1,{TextColor3=Color3.fromRGB(140,160,190)}) end
-    end)
-    Btn.MouseLeave:Connect(function()
-        if not Pages[tab.page].Visible then TPlay(Lbl,0.1,{TextColor3=C.SubText}) end
-    end)
+-- Geçerli hedef kontrolü + döndür
+local function ValidTarget(p)
+    if p == LP then return false end
+    if SameTeam(p) then return false end
+    local ch  = p.Character; if not ch then return false end
+    local hrp = ch:FindFirstChild("HumanoidRootPart")
+    local hum = ch:FindFirstChildOfClass("Humanoid")
+    if not hrp or not hum then return false end
+    if hum.Health <= 0 then return false end
+    -- Ölüm animasyonu / ragdoll durumu
+    local state = hum:GetState()
+    if state == Enum.HumanoidStateType.Dead then return false end
+    return true, ch, hrp, hum
 end
 
--- Footer
-local Footer = Instance.new("TextLabel", SideBar)
-Footer.Text             = T("footer")
-Footer.Size             = UDim2.new(1,0,0,24)
-Footer.Position         = UDim2.new(0,0,1,-28)
-Footer.Font             = Enum.Font.Code
-Footer.TextSize         = 8
-Footer.TextColor3       = Color3.fromRGB(30,45,70)
-Footer.BackgroundTransparency = 1
-
-SetActiveTab("Combat")
-
--- ==================== INTRO ANİMASYON (premium) ====================
-task.spawn(function()
-    -- Scan line yukarıdan aşağıya kayar
-    task.wait(0.05)
-    TPlay(ScanLine, 1.4, {Position=UDim2.new(0,0,1.02,0)}, Enum.EasingStyle.Linear)
-
-    task.wait(0.2)
-    -- Grid çizgileri ve arka plan yumuşak gelsin
-    IBarBG.BackgroundTransparency = 0
-    TPlay(IBarBG, 0.3, {BackgroundTransparency=0})
-    TPlay(IBarPct,0.3, {TextTransparency=0})
-
-    -- Logo kutusu soldan kayar
-    LogoOuter.Position = UDim2.new(0,-110,0.5,-45)
-    TPlay(LogoOuterStroke, 0.01, {Transparency=0})
-    TPlay(LogoOuter, 0.5, {
-        Position = UDim2.new(0,0,0.5,-45),
-        BackgroundTransparency = 0
-    }, Enum.EasingStyle.Back)
-    task.wait(0.35)
-
-    -- RX ikonu belirir
-    TPlay(LogoText,0.25,{TextTransparency=0})
-    task.wait(0.2)
-
-    -- Dikey çizgi uzar
-    TPlay(IDivider,0.3,{Size=UDim2.new(0,2,0,80)},Enum.EasingStyle.Quint)
-    task.wait(0.22)
-
-    -- Başlık sağdan kayar + loading bar
-    ITitle.Position = UDim2.new(0,28,0,4)
-    ITitleAccent.Position = UDim2.new(0,28,0,4)
-    TPlay(ITitle, 0.45, {TextTransparency=0, Position=UDim2.new(0,0,0,4)}, Enum.EasingStyle.Quint)
-    TPlay(ITitleAccent, 0.45, {TextTransparency=0, Position=UDim2.new(0,0,0,4)}, Enum.EasingStyle.Quint)
-
-    -- Loading bar animasyonu
-    for pct = 0, 100, 4 do
-        IBarFill.Size = UDim2.new(pct/100, 0, 1, 0)
-        IBarPct.Text  = pct.."%"
-        task.wait(0.018)
+-- En yakın oyuncu
+local function Closest(fovR, useLoS)
+    local ctr   = SCRCTR()
+    local best, bDist, bCh, bHRP, bHum = nil, fovR
+    for _, p in ipairs(Players:GetPlayers()) do
+        local ok, ch, hrp, hum = ValidTarget(p)
+        if not ok then continue end
+        if useLoS and not C.WallCheck then
+            if not HasLoS(CAM().CFrame.Position, hrp.Position) then continue end
+        end
+        local sp, vis = W2S(hrp.Position)
+        if not vis then continue end
+        local d = (sp - ctr).Magnitude
+        if d < bDist then
+            bDist=d; best=p; bCh=ch; bHRP=hrp; bHum=hum
+        end
     end
-    IBarFill.Size = UDim2.new(1,0,1,0)
-    IBarPct.Text  = "100%"
-    task.wait(0.15)
-
-    TPlay(IEdition,0.3,{TextTransparency=0})
-    task.wait(0.1)
-    IBy.Position = UDim2.new(0,2,0,90)
-    TPlay(IBy,0.3,{TextTransparency=0,Position=UDim2.new(0,2,0,82)})
-    task.wait(1.0)
-
-    -- Çıkış: tüm intro yukarı kayar
-    TPlay(IC, 0.5, {Position=UDim2.new(-0.7,0,0.5,-55)}, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
-    TPlay(IntroFrame, 0.45, {BackgroundTransparency=1}, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
-    task.wait(0.5)
-    IntroFrame.Visible = false
-
-    -- Menü aşağıdan yükselir + hafif bounce
-    Main.Position = UDim2.new(0.5,-400,1.6,0)
-    Main.BackgroundTransparency = 0
-    TPlay(Main, 0.6, {Position=UDim2.new(0.5,-400,0.5,-260)}, Enum.EasingStyle.Back)
-
-    -- Menü açılınca tab butonları art arda gözükür
-    task.wait(0.3)
-    for _, td in ipairs(tabDefs) do
-        local d = TabBtns[td.name]
-        d.lbl.TextTransparency  = 1
-        d.desc.TextTransparency = 1
-        d.ico.TextTransparency  = 1
-    end
-    for i, td in ipairs(tabDefs) do
-        task.delay((i-1)*0.07, function()
-            local d = TabBtns[td.name]
-            TPlay(d.lbl,  0.25, {TextTransparency=0})
-            TPlay(d.desc, 0.25, {TextTransparency=0})
-            TPlay(d.ico,  0.25, {TextTransparency=0})
-        end)
-    end
-end)
-
--- ==================== DUVAR KONTROLÜ ====================
-local function IsVisible(targetPart)
-    local params = RaycastParams.new()
-    params.FilterType = Enum.RaycastFilterType.Exclude
-    local exclude = {targetPart.Parent}
-    if LocalPlayer.Character then table.insert(exclude, LocalPlayer.Character) end
-    params.FilterDescendantsInstances = exclude
-    local origin    = Camera.CFrame.Position
-    local direction = targetPart.Position - origin
-    local result    = workspace:Raycast(origin, direction, params)
-    return result == nil
+    return best, bCh, bHRP, bHum
 end
 
--- ==================== HİLE MOTORU ====================
-local function GetTargetPart(character)
-    local p = _G.AimbotTarget or "Head"
-    if p == "LeftFoot" then
-        return character:FindFirstChild("LeftFoot") or character:FindFirstChild("Left Leg") or character:FindFirstChild("HumanoidRootPart")
-    elseif p == "UpperTorso" then
-        return character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso") or character:FindFirstChild("HumanoidRootPart")
-    else
-        return character:FindFirstChild("Head")
+-- Aim part alma
+local function AimPart(ch, name)
+    if not ch then return nil end
+    local map = {
+        Head="Head",UpperTorso={"UpperTorso","Torso"},
+        HumanoidRootPart="HumanoidRootPart",LowerTorso={"LowerTorso","Torso"},
+    }
+    local v = map[name]
+    if type(v)=="table" then
+        for _,n in ipairs(v) do local p=ch:FindFirstChild(n); if p then return p end end
+    elseif type(v)=="string" then
+        local p=ch:FindFirstChild(v); if p then return p end
     end
+    return ch:FindFirstChild("Head") or ch:FindFirstChild("HumanoidRootPart")
 end
 
-local function GetClosest()
-    local target, dist = nil, math.huge
-    for _, v in pairs(Players:GetPlayers()) do
-        if v == LocalPlayer then continue end
-        if not v.Character then continue end
-        local head = v.Character:FindFirstChild("Head")
-        local hum  = v.Character:FindFirstChild("Humanoid")
-        if not head or not hum or hum.Health <= 0 then continue end
-        if _G.TeamCheck and v.Team == LocalPlayer.Team then continue end
-        if _G.WallCheck and not IsVisible(head) then continue end
-        local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
-        if not onScreen then continue end
-        local mag = (Vector2.new(pos.X,pos.Y) - Vector2.new(Camera.ViewportSize.X/2,Camera.ViewportSize.Y/2)).Magnitude
-        if mag < _G.AimbotFOV and mag < dist then target=v; dist=mag end
-    end
-    return target
-end
+-- ══════════════════════════════════════════════════════
+--  FOV DAİRELERİ — tamamen bağımsız
+-- ══════════════════════════════════════════════════════
+local SACirc = Drawing.new("Circle")
+SACirc.Filled=false; SACirc.Thickness=1.5
+SACirc.Color=Color3.fromRGB(255,80,80); SACirc.Visible=false
 
--- ==================== HEALTH BAR ====================
-local function GetHealthColor(pct)
-    if pct > 0.6 then
-        local t = (1-pct)/0.4
-        return Color3.fromRGB(math.floor(40+t*215), math.floor(220-t*20), 40)
-    else
-        local t = (0.6-pct)/0.6
-        return Color3.fromRGB(math.floor(220+t*10), math.floor(200-t*200), 0)
-    end
-end
+local ABCirc = Drawing.new("Circle")
+ABCirc.Filled=false; ABCirc.Thickness=1.5
+ABCirc.Color=Color3.fromRGB(0,200,255); ABCirc.Visible=false
 
-local function UpdateHealthBar(character, humanoid)
-    if not character:FindFirstChild("HumanoidRootPart") then return end
-    local bar = character:FindFirstChild("RedaxHBar")
-    if not bar then
-        bar = Instance.new("BillboardGui", character)
-        bar.Name = "RedaxHBar"; bar.Size = UDim2.new(0,3,0,28)
-        bar.StudsOffset = Vector3.new(-1.2,0,0); bar.AlwaysOnTop = true; bar.LightInfluence = 0
-        local bg = Instance.new("Frame", bar)
-        bg.Name = "BG"; bg.Size = UDim2.new(1,0,1,0)
-        bg.BackgroundColor3 = Color3.fromRGB(15,15,20); bg.BackgroundTransparency = 0.35; bg.BorderSizePixel = 0
-        Instance.new("UICorner", bg).CornerRadius = UDim.new(1,0)
-        local fill = Instance.new("Frame", bg)
-        fill.Name = "Fill"; fill.AnchorPoint = Vector2.new(0,1)
-        fill.Position = UDim2.new(0,0,1,0); fill.Size = UDim2.new(1,0,1,0)
-        fill.BackgroundColor3 = Color3.fromRGB(0,220,90); fill.BorderSizePixel = 0
-        Instance.new("UICorner", fill).CornerRadius = UDim.new(1,0)
-    end
-    local pct  = math.clamp(humanoid.Health/math.max(humanoid.MaxHealth,1),0,1)
-    local fill = bar:FindFirstChild("BG") and bar.BG:FindFirstChild("Fill")
-    if fill then fill.Size = UDim2.new(1,0,pct,0); fill.BackgroundColor3 = GetHealthColor(pct) end
-end
-
--- FOV silah değişiminde sabit tut
-Camera:GetPropertyChangedSignal("FieldOfView"):Connect(function()
-    if Camera.FieldOfView ~= _G.CameraFOV then Camera.FieldOfView = _G.CameraFOV end
-end)
-
--- ==================== RENDER LOOP ====================
 RunService.RenderStepped:Connect(function()
-    FOVCircle.Radius   = _G.AimbotFOV
-    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-    FOVCircle.Visible  = _G.AimbotEnabled
+    local c = SCRCTR()
+    SACirc.Position=c; SACirc.Radius=C.SilentAimFOV
+    SACirc.Visible = C.SilentAim and C.SilentAimShowFOV
 
-    if _G.AimbotEnabled and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-        local t = GetClosest()
-        if t and t.Character then
-            local ap = GetTargetPart(t.Character)
-            if ap then
-                Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, ap.Position), 1/math.max(1,_G.AimbotSmooth))
+    ABCirc.Position=c; ABCirc.Radius=C.AimbotFOV
+    ABCirc.Visible = C.Aimbot and C.AimbotShowFOV
+end)
+
+-- ══════════════════════════════════════════════════════
+--  SILENT AIM
+-- ══════════════════════════════════════════════════════
+local OrigNI, SAOn = nil, false
+local function EnableSA()
+    if SAOn then return end
+    if not hookmetamethod then warn("[RedaxHACK] hookmetamethod yok!"); SAOn=true; return end
+    SAOn = true
+    OrigNI = hookmetamethod(game,"__index",function(self,key)
+        if not checkcaller() then
+            if (key=="Hit" or key=="Target") and rawequal(self,Mouse) then
+                local _,ch = Closest(C.SilentAimFOV,false)
+                if ch then
+                    local part = AimPart(ch, C.SilentAimPart)
+                    if part then
+                        if key=="Hit"    then return CFrame.new(part.Position) end
+                        if key=="Target" then return part end
+                    end
+                end
             end
+        end
+        return OrigNI(self,key)
+    end)
+end
+local function DisableSA()
+    if not SAOn then return end; SAOn=false
+    if OrigNI then pcall(function() hookmetamethod(game,"__index",OrigNI) end); OrigNI=nil end
+end
+
+-- ══════════════════════════════════════════════════════
+--  AIMBOT
+-- ══════════════════════════════════════════════════════
+RunService.RenderStepped:Connect(function()
+    if not C.Aimbot then return end
+    local holding = C.AimbotKey=="RMB" and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
+        or C.AimbotKey=="LMB" and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
+        or C.AimbotKey=="E"   and UserInputService:IsKeyDown(Enum.KeyCode.E)
+    if not holding then return end
+
+    local _, ch, hrp = Closest(C.AimbotFOV, true)
+    if not ch or not hrp then return end
+    local part = AimPart(ch, C.AimbotPart)
+    if not part then return end
+
+    local tPos = part.Position
+    if C.Prediction then
+        local ok, vel = pcall(function() return hrp.AssemblyLinearVelocity end)
+        if ok and vel then
+            local ping=0; pcall(function()
+                ping=game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()
+            end)
+            tPos = tPos + vel * ((C.PredictionMs + ping)/1000)
         end
     end
+    local alpha = 1 - (C.AimbotSmooth-1)/10
+    alpha = math.clamp(alpha, 0.05, 1)
+    local cam = CAM()
+    cam.CFrame = cam.CFrame:Lerp(CFrame.new(cam.CFrame.Position, tPos), alpha)
+end)
 
-    if _G.EspEnabled then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p == LocalPlayer then continue end
-            if not p.Character then continue end
-            local isTeam = p.Team == LocalPlayer.Team
-            if isTeam and not _G.TeamEsp then
-                if p.Character:FindFirstChild("RedaxESP") then p.Character.RedaxESP:Destroy() end
-                if p.Character:FindFirstChild("RedaxHBar") then p.Character.RedaxHBar:Destroy() end
-                continue
-            end
-            local visible = p.Character:FindFirstChild("Head") and IsVisible(p.Character.Head)
-            local clr = isTeam and C.EspGreen or (visible and C.EspRed or C.EspYellow)
-            local esp = p.Character:FindFirstChild("RedaxESP")
-            if not esp then esp = Instance.new("Highlight",p.Character); esp.Name="RedaxESP" end
-            esp.FillColor=clr; esp.FillTransparency=0.65; esp.OutlineColor=clr; esp.OutlineTransparency=0
-            esp.DepthMode = (isTeam or not visible) and Enum.HighlightDepthMode.AlwaysOnTop or Enum.HighlightDepthMode.Occluded
-            if _G.HealthBarEnabled then
-                local hum = p.Character:FindFirstChildOfClass("Humanoid")
-                if hum then UpdateHealthBar(p.Character, hum) end
-            else
-                local hb = p.Character:FindFirstChild("RedaxHBar")
-                if hb then hb:Destroy() end
-            end
-        end
-    else
-        for _, p in pairs(Players:GetPlayers()) do
-            if p.Character then
-                if p.Character:FindFirstChild("RedaxESP") then p.Character.RedaxESP:Destroy() end
-                if p.Character:FindFirstChild("RedaxHBar") then p.Character.RedaxHBar:Destroy() end
-            end
-        end
-    end
-
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        if LocalPlayer.Character.Humanoid.WalkSpeed ~= _G.WalkSpeed then
-            LocalPlayer.Character.Humanoid.WalkSpeed = _G.WalkSpeed
+-- ══════════════════════════════════════════════════════
+--  TRIGGERBOT
+-- ══════════════════════════════════════════════════════
+local lastTrig = 0
+RunService.Heartbeat:Connect(function()
+    if not C.Triggerbot then return end
+    if tick()-lastTrig < C.TrigDelay/1000 then return end
+    local cam = CAM()
+    local rp  = RaycastParams.new()
+    rp.FilterType = Enum.RaycastFilterType.Exclude
+    rp.FilterDescendantsInstances = {CHAR() or Instance.new("Folder")}
+    local res = Workspace:Raycast(cam.CFrame.Position, cam.CFrame.LookVector*2000, rp)
+    if not res then return end
+    local hp = Players:GetPlayerFromCharacter(res.Instance.Parent)
+    if not hp or hp==LP then return end
+    if SameTeam(hp) then return end
+    local hum = hp.Character and hp.Character:FindFirstChildOfClass("Humanoid")
+    if not hum or hum.Health<=0 then return end
+    if math.random(1,100) > C.HitChance then return end
+    lastTrig = tick()
+    local chr=CHAR(); if not chr then return end
+    for _,tool in ipairs(chr:GetChildren()) do
+        if tool:IsA("Tool") then
+            pcall(function()
+                local re = tool:FindFirstChildOfClass("RemoteEvent")
+                if re then re:FireServer() end
+            end)
         end
     end
 end)
 
--- ==================== INSERT TOGGLE ====================
-local isOpen = true
-UserInputService.InputBegan:Connect(function(i)
-    if i.KeyCode == Enum.KeyCode.Insert then
-        isOpen = not isOpen
-        if isOpen then
-            TPlay(Main, 0.45, {Position=UDim2.new(0.5,-400,0.5,-260)}, Enum.EasingStyle.Back)
-        else
-            TPlay(Main, 0.35, {Position=UDim2.new(0.5,-400,1.6,0)}, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+-- ══════════════════════════════════════════════════════
+--  HITBOX EXPANDER
+--  DÜZELTME: CharacterAdded bağlantısı + tüm yeni
+--  karakterleri otomatik yakala
+-- ══════════════════════════════════════════════════════
+local OrigSizes   = {}  -- [part] = originalSize
+local HBConnections = {} -- [player] = {conn1, conn2}
+
+local HB_PARTS = {
+    "Head","UpperTorso","LowerTorso","HumanoidRootPart",
+    "LeftUpperArm","RightUpperArm","LeftLowerArm","RightLowerArm",
+    "LeftHand","RightHand",
+    "LeftUpperLeg","RightUpperLeg","LeftLowerLeg","RightLowerLeg",
+    "LeftFoot","RightFoot",
+    -- R6 isimleri
+    "Torso","Left Arm","Right Arm","Left Leg","Right Leg",
+}
+
+local function ExpandChar(ch)
+    if not ch then return end
+    for _, pname in ipairs(HB_PARTS) do
+        local part = ch:FindFirstChild(pname)
+        if part and part:IsA("BasePart") and not part:IsA("UnionOperation") then
+            if not OrigSizes[part] then
+                OrigSizes[part] = part.Size
+            end
+            part.Size = Vector3.new(C.HitboxSize, C.HitboxSize, C.HitboxSize)
         end
-        FOVCircle.Visible = isOpen and _G.AimbotEnabled
     end
+end
+
+local function RestoreChar(ch)
+    if not ch then return end
+    for _, pname in ipairs(HB_PARTS) do
+        local part = ch:FindFirstChild(pname)
+        if part and OrigSizes[part] then
+            pcall(function() part.Size = OrigSizes[part] end)
+            OrigSizes[part] = nil
+        end
+    end
+end
+
+local function SetupHitboxForPlayer(p)
+    if p == LP then return end
+    -- Eski bağlantıları temizle
+    if HBConnections[p] then
+        for _, conn in ipairs(HBConnections[p]) do conn:Disconnect() end
+    end
+    HBConnections[p] = {}
+
+    -- Mevcut karakter
+    if p.Character then
+        if C.HitboxExpander then ExpandChar(p.Character) end
+    end
+
+    -- Yeni karakter geldiğinde
+    local conn1 = p.CharacterAdded:Connect(function(ch)
+        task.wait(0.1) -- karakter tam yüklenmesi için bekle
+        if C.HitboxExpander then ExpandChar(ch) end
+    end)
+    -- Karakter gidince eski size'ları temizle
+    local conn2 = p.CharacterRemoving:Connect(function(ch)
+        RestoreChar(ch)
+    end)
+    table.insert(HBConnections[p], conn1)
+    table.insert(HBConnections[p], conn2)
+end
+
+local function SetupAllHitboxes()
+    for _, p in ipairs(Players:GetPlayers()) do SetupHitboxForPlayer(p) end
+end
+
+-- Yeni oyuncu gelince bağlan
+Players.PlayerAdded:Connect(SetupHitboxForPlayer)
+Players.PlayerRemoving:Connect(function(p)
+    if HBConnections[p] then
+        for _, conn in ipairs(HBConnections[p]) do conn:Disconnect() end
+        HBConnections[p] = nil
+    end
+end)
+
+-- Heartbeat: aktifken sürekli uygula (boyut sıfırlanan oyunlar için)
+RunService.Heartbeat:Connect(function()
+    if not C.HitboxExpander then return end
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LP and p.Character then
+            ExpandChar(p.Character)
+        end
+    end
+end)
+
+local function RestoreAllHitboxes()
+    for part, sz in pairs(OrigSizes) do
+        pcall(function() if part and part.Parent then part.Size = sz end end)
+    end
+    OrigSizes = {}
+end
+
+-- ══════════════════════════════════════════════════════
+--  ESP SİSTEMİ
+--
+--  DÜZELTMELER:
+--  1. ESP "donması" → Humanoid.Died event + Health <= 0 + Dead state → anında gizle
+--  2. Hayalet ESP → karakterin Parent'ı nil mi kontrol
+--  3. Chams → SelectionBox yerine Highlight (doğru API)
+--  4. Karakter spawn/respawn → CharacterAdded ile ESP yeniden kur
+-- ══════════════════════════════════════════════════════
+
+local ESP  = {}  -- [player] = {drawing nesneleri}
+local DIED = {}  -- [player] = bool (öldü mü)
+
+local SK_JOINTS = {
+    -- R15
+    {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
+    {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
+    {"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
+    {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
+    {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
+    -- R6
+    {"Head","Torso"},{"Torso","Left Arm"},{"Torso","Right Arm"},
+    {"Torso","Left Leg"},{"Torso","Right Leg"},
+}
+
+local function ND(t, p)
+    local d = Drawing.new(t)
+    for k,v in pairs(p or {}) do d[k]=v end
+    return d
+end
+
+-- Tüm ESP nesnelerini gizle
+local function HideESP(e)
+    if not e then return end
+    local function hv(v) if type(v)=="userdata" then pcall(function() v.Visible=false end) end end
+    for k,v in pairs(e) do
+        if k=="Sk" then for _,l in ipairs(v) do hv(l) end
+        else hv(v) end
+    end
+end
+
+-- ESP nesnelerini sil
+local function KillESP(p)
+    local e = ESP[p]; if not e then return end
+    local function rm(v) if type(v)=="userdata" then pcall(function() v:Remove() end) end end
+    for k,v in pairs(e) do
+        if k=="Sk" then for _,l in ipairs(v) do rm(l) end
+        else rm(v) end
+    end
+    ESP[p] = nil
+end
+
+-- ESP nesnelerini oluştur
+local function MakeESP(p)
+    if p==LP then return end
+    -- Önce eskisini sil
+    if ESP[p] then KillESP(p) end
+
+    local e = {
+        -- Köşe kutusu — 8 line
+        CTL1=ND("Line",{Visible=false,Thickness=2,Color=Color3.fromRGB(255,50,50)}),
+        CTL2=ND("Line",{Visible=false,Thickness=2,Color=Color3.fromRGB(255,50,50)}),
+        CTR1=ND("Line",{Visible=false,Thickness=2,Color=Color3.fromRGB(255,50,50)}),
+        CTR2=ND("Line",{Visible=false,Thickness=2,Color=Color3.fromRGB(255,50,50)}),
+        CBL1=ND("Line",{Visible=false,Thickness=2,Color=Color3.fromRGB(255,50,50)}),
+        CBL2=ND("Line",{Visible=false,Thickness=2,Color=Color3.fromRGB(255,50,50)}),
+        CBR1=ND("Line",{Visible=false,Thickness=2,Color=Color3.fromRGB(255,50,50)}),
+        CBR2=ND("Line",{Visible=false,Thickness=2,Color=Color3.fromRGB(255,50,50)}),
+        -- İsim
+        Nam = ND("Text",{Visible=false,Size=13,Center=true,Outline=true,
+            Color=Color3.fromRGB(255,255,255),OutlineColor=Color3.fromRGB(0,0,0),
+            Text=p.Name,Font=Drawing.Fonts.UI}),
+        -- HP bar arka plan
+        HBg = ND("Line",{Visible=false,Thickness=5,Color=Color3.fromRGB(20,20,20)}),
+        -- HP bar dolgu
+        HFg = ND("Line",{Visible=false,Thickness=3,Color=Color3.fromRGB(0,220,0)}),
+        -- HP yüzde
+        HPc = ND("Text",{Visible=false,Size=10,Center=true,Outline=true,
+            Color=Color3.fromRGB(255,255,255),OutlineColor=Color3.fromRGB(0,0,0),
+            Font=Drawing.Fonts.Monospace}),
+        -- Mesafe
+        Dst = ND("Text",{Visible=false,Size=11,Center=true,Outline=true,
+            Color=Color3.fromRGB(180,180,180),OutlineColor=Color3.fromRGB(0,0,0),
+            Font=Drawing.Fonts.Monospace}),
+        -- Tracer
+        Trc = ND("Line",{Visible=false,Thickness=1,Color=Color3.fromRGB(255,50,50)}),
+        -- Head dot
+        HDt = ND("Circle",{Visible=false,Filled=true,Color=Color3.fromRGB(255,50,50),Radius=4}),
+        -- Skeleton
+        Sk  = {},
+    }
+    for i=1,#SK_JOINTS do
+        e.Sk[i] = ND("Line",{Visible=false,Thickness=1,Color=Color3.fromRGB(255,210,50)})
+    end
+    ESP[p] = e
+
+    -- ÖNEMLİ: Humanoid.Died bağlantısı — anında ESP kapat
+    -- Bu bağlantı karaktere bağlı, karakter yenilenince otomatik kopar
+    local ch = p.Character
+    if ch then
+        local hum = ch:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.Died:Connect(function()
+                DIED[p] = true
+                HideESP(ESP[p])
+                -- Chams'ı da kaldır
+                local hl = ch:FindFirstChild("_RDXHl")
+                if hl then hl.Enabled = false end
+            end)
+        end
+    end
+end
+
+-- CHAMS — Highlight instance kullanıyoruz (SelectionBox değil)
+-- Highlight duvar arkasından da görünür, adornee gerekmiyor
+local function ApplyChams(p)
+    local ch = p.Character; if not ch then return end
+    local hl = ch:FindFirstChild("_RDXHl")
+    if not hl then
+        hl = Instance.new("Highlight")
+        hl.Name = "_RDXHl"
+        hl.Adornee = ch
+        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop  -- duvar arkası göster
+        hl.Parent = ch
+    end
+    local r,g,b = C.ChamsR/255, C.ChamsG/255, C.ChamsB/255
+    hl.FillColor       = Color3.new(r,g,b)
+    hl.FillTransparency = C.ChamsAlpha / 100
+    hl.OutlineColor    = Color3.new(r,g,b)
+    hl.OutlineTransparency = 0
+    hl.Enabled         = true
+end
+
+local function RemoveChams(p)
+    local ch = p.Character; if not ch then return end
+    local hl = ch:FindFirstChild("_RDXHl")
+    if hl then hl.Enabled = false end
+end
+
+-- Oyuncu/karakter event'leri
+local function SetupPlayer(p)
+    if p == LP then return end
+    DIED[p] = false
+    MakeESP(p)
+
+    -- Karakter değişince: ESP yeniden kur, died flag sıfırla
+    p.CharacterAdded:Connect(function(ch)
+        DIED[p] = false
+        task.wait(0.15)
+        MakeESP(p)
+        -- Yeni karaktere hitbox uygula
+        if C.HitboxExpander then
+            task.wait(0.1)
+            ExpandChar(ch)
+        end
+        -- Yeni humanoid died bağlantısı MakeESP içinde yapılıyor
+    end)
+
+    p.CharacterRemoving:Connect(function(ch)
+        -- Karakter gidince tüm ESP'yi anında gizle
+        HideESP(ESP[p])
+        RestoreChar(ch)
+        -- Eski highlight kaldır
+        local hl = ch:FindFirstChild("_RDXHl")
+        if hl then hl.Enabled = false end
+    end)
+end
+
+Players.PlayerAdded:Connect(SetupPlayer)
+Players.PlayerRemoving:Connect(function(p)
+    KillESP(p)
+    DIED[p] = nil
+    if HBConnections[p] then
+        for _, conn in ipairs(HBConnections[p]) do conn:Disconnect() end
+        HBConnections[p] = nil
+    end
+end)
+for _, p in ipairs(Players:GetPlayers()) do
+    SetupPlayer(p)
+    SetupHitboxForPlayer(p)
+end
+
+-- Köşe kutusu çiz
+local function DrawCB(e, x, y, w, h, col, thick)
+    local cw = math.max(w*0.22, 5)
+    local ch = math.max(h*0.18, 5)
+
+    local function SL(ln, fx, fy, tx, ty)
+        ln.From=Vector2.new(fx,fy); ln.To=Vector2.new(tx,ty)
+        ln.Color=col; ln.Thickness=thick; ln.Visible=true
+    end
+
+    SL(e.CTL1, x,   y,   x+cw, y)
+    SL(e.CTL2, x,   y,   x,    y+ch)
+    SL(e.CTR1, x+w, y,   x+w-cw, y)
+    SL(e.CTR2, x+w, y,   x+w,  y+ch)
+    SL(e.CBL1, x,   y+h, x+cw, y+h)
+    SL(e.CBL2, x,   y+h, x,    y+h-ch)
+    SL(e.CBR1, x+w, y+h, x+w-cw, y+h)
+    SL(e.CBR2, x+w, y+h, x+w,  y+h-ch)
+end
+
+local function HideCB(e)
+    for _,k in ipairs({"CTL1","CTL2","CTR1","CTR2","CBL1","CBL2","CBR1","CBR2"}) do
+        e[k].Visible=false
+    end
+end
+
+-- ══════════════════════════════════════════════════════
+--  ANA ESP RENDER DÖNGÜSÜ
+-- ══════════════════════════════════════════════════════
+RunService.RenderStepped:Connect(function()
+    local vp   = CAM().ViewportSize
+    local myHRP = HRPF()
+    local anyOn = C.BoxESP or C.NameESP or C.HealthESP or C.DistESP
+        or C.TracerESP or C.SkeletonESP or C.HeadDot
+
+    for _, pl in ipairs(Players:GetPlayers()) do
+        if pl == LP then continue end
+        local e = ESP[pl]
+        if not e then continue end
+
+        ----------------------------------------------------------------
+        -- GHOST ESP ENGELİ — 5 aşamalı kontrol
+        ----------------------------------------------------------------
+        local ch  = pl.Character
+        -- 1. Karakter nesnesi var mı ve parent'ı workspace mi?
+        if not ch or not ch.Parent then
+            HideESP(e); RemoveChams(pl); continue
+        end
+        local hrp = ch:FindFirstChild("HumanoidRootPart")
+        local hum = ch:FindFirstChildOfClass("Humanoid")
+        -- 2. Temel parçalar var mı?
+        if not hrp or not hum then HideESP(e); RemoveChams(pl); continue end
+        -- 3. HP sıfır mı?
+        if hum.Health <= 0 then HideESP(e); RemoveChams(pl); continue end
+        -- 4. Ölüm state'i mi?
+        if hum:GetState() == Enum.HumanoidStateType.Dead then
+            HideESP(e); RemoveChams(pl); continue
+        end
+        -- 5. Died flag (Humanoid.Died event'inden set edilir)
+        if DIED[pl] then HideESP(e); RemoveChams(pl); continue end
+        ----------------------------------------------------------------
+
+        -- Hiçbir ESP özelliği kapalıysa chams hariç geç
+        if not anyOn then
+            HideESP(e)
+            if C.Chams then ApplyChams(pl) else RemoveChams(pl) end
+            continue
+        end
+
+        -- Pozisyon hesapla
+        local head    = ch:FindFirstChild("Head")
+        local headPos = head and head.Position + Vector3.new(0, 0.6, 0)
+                        or hrp.Position + Vector3.new(0, 2.8, 0)
+        local feetPos = hrp.Position - Vector3.new(0, 3.1, 0)
+
+        local hSP, hV, hZ = W2S(headPos)
+        local fSP, fV, fZ = W2S(feetPos)
+
+        -- Z < 0 → kamera arkasında → tamamen gizle
+        if hZ <= 0 and fZ <= 0 then
+            HideESP(e)
+            if C.Chams then ApplyChams(pl) else RemoveChams(pl) end
+            continue
+        end
+
+        -- Viewport marjı kontrolü
+        local M = 350
+        local onScr = (hSP.X>-M and hSP.X<vp.X+M and hSP.Y>-M and hSP.Y<vp.Y+M)
+                   or (fSP.X>-M and fSP.X<vp.X+M and fSP.Y>-M and fSP.Y<vp.Y+M)
+
+        -- Box hesapla
+        local bH = math.max(math.abs(hSP.Y - fSP.Y), 8)
+        local bW = bH * 0.56
+        local bX = fSP.X - bW/2
+        local bY = hSP.Y
+        local col = Color3.fromRGB(255, 50, 50)
+
+        -- ═══ BOX ═══
+        if C.BoxESP and onScr then
+            DrawCB(e, bX, bY, bW, bH, col, C.BoxThick + 1)
+        else
+            HideCB(e)
+        end
+
+        -- ═══ İSİM ═══
+        if C.NameESP and onScr then
+            e.Nam.Position = Vector2.new(fSP.X, bY - 17)
+            e.Nam.Text     = pl.Name
+            e.Nam.Color    = Color3.fromRGB(255,255,255)
+            e.Nam.Visible  = true
+        else
+            e.Nam.Visible = false
+        end
+
+        -- ═══ HP BAR ═══
+        local hp  = math.clamp(hum.Health / math.max(hum.MaxHealth,1), 0, 1)
+        local hpR = math.floor((1-hp)*255)
+        local hpG = math.floor(hp*255)
+        if C.HealthESP and onScr then
+            local bx2  = bX - 7
+            e.HBg.From = Vector2.new(bx2, bY);      e.HBg.To = Vector2.new(bx2, bY+bH)
+            e.HBg.Thickness=5; e.HBg.Visible=true
+            e.HFg.From = Vector2.new(bx2, bY+bH*(1-hp)); e.HFg.To = Vector2.new(bx2, bY+bH)
+            e.HFg.Thickness=3; e.HFg.Color=Color3.fromRGB(hpR,hpG,0); e.HFg.Visible=true
+            e.HPc.Position = Vector2.new(bx2-8, bY+bH/2-6)
+            e.HPc.Text  = math.floor(hp*100).."%"
+            e.HPc.Color = Color3.fromRGB(hpR,hpG,0); e.HPc.Visible=true
+        else
+            e.HBg.Visible=false; e.HFg.Visible=false; e.HPc.Visible=false
+        end
+
+        -- ═══ MESAFE ═══
+        if C.DistESP and onScr and myHRP then
+            local d = math.floor((myHRP.Position - hrp.Position).Magnitude)
+            e.Dst.Position = Vector2.new(fSP.X, bY+bH+4)
+            e.Dst.Text     = d.." studs"
+            e.Dst.Visible  = true
+        else
+            e.Dst.Visible = false
+        end
+
+        -- ═══ TRACER ═══
+        if C.TracerESP and onScr then
+            local ty = C.TracerOrigin=="Bottom" and vp.Y
+                or C.TracerOrigin=="Middle" and vp.Y/2 or 0
+            e.Trc.From = Vector2.new(vp.X/2, ty)
+            e.Trc.To   = Vector2.new(fSP.X, fSP.Y)
+            e.Trc.Color = col; e.Trc.Visible=true
+        else
+            e.Trc.Visible=false
+        end
+
+        -- ═══ HEAD DOT ═══
+        if C.HeadDot and onScr then
+            local hsp2, hv2 = W2S(headPos)
+            if hv2 and hZ>0 then
+                e.HDt.Position = hsp2
+                e.HDt.Radius   = math.max(bW*0.09, 2.5)
+                e.HDt.Color    = col; e.HDt.Visible=true
+            else
+                e.HDt.Visible=false
+            end
+        else
+            e.HDt.Visible=false
+        end
+
+        -- ═══ SKELETON ═══
+        for i, jt in ipairs(SK_JOINTS) do
+            local ln = e.Sk[i]
+            if C.SkeletonESP and onScr then
+                local pA = ch:FindFirstChild(jt[1])
+                local pB = ch:FindFirstChild(jt[2])
+                if pA and pB then
+                    local sA, vA = W2S(pA.Position)
+                    local sB, vB = W2S(pB.Position)
+                    if vA or vB then
+                        ln.From=sA; ln.To=sB
+                        ln.Color=Color3.fromRGB(255,200,50)
+                        ln.Visible=true
+                    else ln.Visible=false end
+                else ln.Visible=false end
+            else ln.Visible=false end
+        end
+
+        -- ═══ CHAMS (Highlight — duvar arkası) ═══
+        if C.Chams then ApplyChams(pl) else RemoveChams(pl) end
+    end
+end)
+
+-- ══════════════════════════════════════════════════════
+--  MOVEMENT
+-- ══════════════════════════════════════════════════════
+RunService.Heartbeat:Connect(function()
+    local hum=HUMF(); if not hum then return end
+    if C.Speed    then hum.WalkSpeed = C.WalkSpeed end
+    if C.HighJump then hum.JumpPower = C.JumpPow   end
+end)
+
+UserInputService.JumpRequest:Connect(function()
+    if not C.InfJump then return end
+    local hum=HUMF(); if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if not C.BHop then return end
+    local hum=HUMF()
+    if hum and hum:GetState()==Enum.HumanoidStateType.Landed then
+        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+RunService.Stepped:Connect(function()
+    if not C.Noclip then return end
+    local ch=CHAR(); if not ch then return end
+    for _,p in ipairs(ch:GetDescendants()) do
+        if p:IsA("BasePart") then p.CanCollide=false end
+    end
+end)
+
+UserInputService.InputBegan:Connect(function(inp, gp)
+    if gp then return end
+    if C.LongJump and inp.KeyCode==Enum.KeyCode.Space then
+        local hrp=HRPF(); if not hrp then return end
+        local look=CAM().CFrame.LookVector
+        hrp.Velocity = Vector3.new(look.X*80, 35, look.Z*80)
+    end
+end)
+
+-- FLY
+local FlyBV, FlyBG, FlyConn
+local function KillFly()
+    if FlyConn then FlyConn:Disconnect(); FlyConn=nil end
+    if FlyBV and FlyBV.Parent then FlyBV:Destroy() end
+    if FlyBG and FlyBG.Parent then FlyBG:Destroy() end
+    FlyBV=nil; FlyBG=nil
+    local hum=HUMF(); if hum then hum.PlatformStand=false end
+end
+local function StartFly()
+    KillFly()
+    local hrp=HRPF(); if not hrp then return end
+    FlyBV=Instance.new("BodyVelocity"); FlyBV.MaxForce=Vector3.new(1e6,1e6,1e6)
+    FlyBV.Velocity=Vector3.zero; FlyBV.Parent=hrp
+    FlyBG=Instance.new("BodyGyro"); FlyBG.MaxTorque=Vector3.new(1e6,1e6,1e6)
+    FlyBG.P=9e4; FlyBG.Parent=hrp
+    local hum=HUMF(); if hum then hum.PlatformStand=true end
+    FlyConn=RunService.Heartbeat:Connect(function()
+        if not C.Fly then KillFly(); return end
+        local hrp2=HRPF(); if not hrp2 then KillFly(); return end
+        local d=Vector3.zero; local uis=UserInputService; local cam=CAM()
+        if uis:IsKeyDown(Enum.KeyCode.W)         then d+=cam.CFrame.LookVector  end
+        if uis:IsKeyDown(Enum.KeyCode.S)         then d-=cam.CFrame.LookVector  end
+        if uis:IsKeyDown(Enum.KeyCode.A)         then d-=cam.CFrame.RightVector end
+        if uis:IsKeyDown(Enum.KeyCode.D)         then d+=cam.CFrame.RightVector end
+        if uis:IsKeyDown(Enum.KeyCode.Space)     then d+=Vector3.new(0,1,0)     end
+        if uis:IsKeyDown(Enum.KeyCode.LeftShift) then d-=Vector3.new(0,1,0)     end
+        FlyBV.Velocity = d.Magnitude>0 and d.Unit*C.FlySpeed or Vector3.zero
+        FlyBG.CFrame   = cam.CFrame
+    end)
+end
+
+LP.CharacterAdded:Connect(function()
+    task.wait(0.6)
+    if C.Speed    then local h=HUMF(); if h then h.WalkSpeed=C.WalkSpeed end end
+    if C.HighJump then local h=HUMF(); if h then h.JumpPower=C.JumpPow   end end
+    if C.Fly      then task.wait(0.3); StartFly() end
+    if C.AntiRagdoll then
+        local ch=CHAR(); if ch then
+            for _,v in ipairs(ch:GetDescendants()) do
+                if v:IsA("BallSocketConstraint") or v:IsA("HingeConstraint") then v.Enabled=false end
+            end
+        end
+    end
+end)
+
+-- ══════════════════════════════════════════════════════
+--  PLAYER FEATURES
+-- ══════════════════════════════════════════════════════
+local GodConn
+local function SetGodMode(v)
+    C.GodMode=v
+    if GodConn then GodConn:Disconnect(); GodConn=nil end
+    if v then
+        GodConn = RunService.Heartbeat:Connect(function()
+            local hum=HUMF()
+            if hum and hum.Health<hum.MaxHealth then hum.Health=hum.MaxHealth end
+        end)
+    end
+end
+
+RunService.Heartbeat:Connect(function()
+    if not C.AntiVoid then return end
+    local hrp=HRPF()
+    if hrp and hrp.Position.Y < -350 then
+        hrp.CFrame = CFrame.new(hrp.Position.X, 100, hrp.Position.Z)
+    end
+end)
+
+LP.Idled:Connect(function()
+    if C.AntiAFK then VirtualUser:CaptureController(); VirtualUser:ClickButton2(Vector2.new()) end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if not C.AntiRagdoll then return end
+    local ch=CHAR(); if not ch then return end
+    for _,v in ipairs(ch:GetDescendants()) do
+        if v:IsA("BallSocketConstraint") or v:IsA("HingeConstraint") then v.Enabled=false end
+    end
+end)
+
+-- ══════════════════════════════════════════════════════
+--  WORLD
+-- ══════════════════════════════════════════════════════
+local OrigFE, OrigFS, OrigAmb, OrigBri, OrigOut
+
+local function SetFullbright(v)
+    C.Fullbright=v
+    if v then
+        OrigAmb=OrigAmb or Lighting.Ambient
+        OrigBri=OrigBri or Lighting.Brightness
+        OrigOut=OrigOut or Lighting.OutdoorAmbient
+        Lighting.Ambient=Color3.fromRGB(255,255,255)
+        Lighting.OutdoorAmbient=Color3.fromRGB(255,255,255)
+        Lighting.Brightness=2
+    else
+        if OrigAmb then Lighting.Ambient=OrigAmb end
+        if OrigBri then Lighting.Brightness=OrigBri end
+        if OrigOut then Lighting.OutdoorAmbient=OrigOut end
+    end
+end
+
+local function SetNoFog(v)
+    C.NoFog=v
+    if v then
+        OrigFE=OrigFE or Lighting.FogEnd
+        OrigFS=OrigFS or Lighting.FogStart
+        Lighting.FogEnd=9e8; Lighting.FogStart=9e8
+    else
+        if OrigFE then Lighting.FogEnd=OrigFE end
+        if OrigFS then Lighting.FogStart=OrigFS end
+    end
+end
+
+local function SetNoShadows(v) C.NoShadows=v; Lighting.GlobalShadows=not v end
+local function ApplyGravity()  Workspace.Gravity=C.Gravity end
+
+local function SetNoWeather(v)
+    C.NoWeather=v
+    for _,o in ipairs(Lighting:GetChildren()) do
+        if o:IsA("Atmosphere") then o.Density=v and 0 or 0.3 end
+        if o:IsA("Sky") then pcall(function() o.Enabled=not v end) end
+    end
+end
+
+-- ══════════════════════════════════════════════════════
+--  TELEPORT
+-- ══════════════════════════════════════════════════════
+local Waypoints = {}
+local function TpToPlayer(p)
+    local hrp=HRPF(); local t=p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+    if hrp and t then hrp.CFrame=t.CFrame+Vector3.new(2,0,0) end
+end
+local function AddWP(name) local hrp=HRPF(); if hrp then
+    Waypoints[name]={hrp.Position.X,hrp.Position.Y,hrp.Position.Z} end end
+local function TpWP(name) local w=Waypoints[name]; local hrp=HRPF()
+    if w and hrp then hrp.CFrame=CFrame.new(w[1],w[2],w[3]) end end
+local function ServerHop()
+    local ok,r=pcall(function() return HttpService:JSONDecode(game:HttpGet(
+        "https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100")) end)
+    if ok and r and r.data then for _,s in ipairs(r.data) do
+        if s.id~=game.JobId and s.playing<s.maxPlayers then
+            TeleportSvc:TeleportToPlaceInstance(game.PlaceId,s.id); return true end end end
+    return false
+end
+
+-- ══════════════════════════════════════════════════════
+--  MISC
+-- ══════════════════════════════════════════════════════
+local SpamThread
+local function StartSpam()
+    if SpamThread then task.cancel(SpamThread) end
+    SpamThread=task.spawn(function()
+        while C.ChatSpam do
+            pcall(function()
+                game:GetService("ReplicatedStorage")
+                    :WaitForChild("DefaultChatSystemChatEvents",2)
+                    :WaitForChild("SayMessageRequest",2)
+                    :FireServer(C.ChatMsg,"All")
+            end)
+            task.wait(math.max(C.ChatDelay,1))
+        end
+    end)
+end
+local function ApplyFPSBoost()
+    pcall(function() settings().Rendering.QualityLevel=1 end)
+    for _,v in ipairs(Lighting:GetChildren()) do
+        if v:IsA("BloomEffect") or v:IsA("BlurEffect") or v:IsA("SunRaysEffect")
+            or v:IsA("ColorCorrectionEffect") or v:IsA("DepthOfFieldEffect") then v.Enabled=false end
+    end
+end
+
+local FPSLbl=Drawing.new("Text"); FPSLbl.Size=15; FPSLbl.Color=Color3.fromRGB(80,255,120)
+FPSLbl.Outline=true; FPSLbl.Font=Drawing.Fonts.Monospace
+FPSLbl.Position=Vector2.new(10,10); FPSLbl.Visible=false
+
+local fpsQ={}
+RunService.RenderStepped:Connect(function(dt)
+    table.insert(fpsQ,dt); if #fpsQ>60 then table.remove(fpsQ,1) end
+    if C.ShowFPS then
+        local s=0; for _,v in ipairs(fpsQ) do s+=v end
+        local fps=math.floor(#fpsQ/s)
+        local ping=0; pcall(function()
+            ping=math.floor(game:GetService("Stats").Network.ServerStatsItem["Data Ping"]:GetValue()) end)
+        FPSLbl.Text=("FPS: %d  PING: %dms"):format(fps,ping); FPSLbl.Visible=true
+    else FPSLbl.Visible=false end
+end)
+
+-- ══════════════════════════════════════════════════════
+--  RAYFIELD
+-- ══════════════════════════════════════════════════════
+local Rayfield
+local rfOK=pcall(function() Rayfield=loadstring(game:HttpGet("https://sirius.menu/rayfield"))() end)
+if not rfOK or not Rayfield then
+    pcall(function()
+        Rayfield=loadstring(game:HttpGet(
+            "https://raw.githubusercontent.com/SiriusAsh/Rayfield/main/source.lua"))()
+    end)
+end
+if not Rayfield then warn("[RedaxHACK] Rayfield yuklenemedi!"); return end
+
+-- ══════════════════════════════════════════════════════
+--  GUI
+-- ══════════════════════════════════════════════════════
+local Win = Rayfield:CreateWindow({
+    Name            = "RedaxHACK  v1.0 BETA",
+    LoadingTitle    = "RedaxHACK  v1.0 BETA",
+    LoadingSubtitle = "⚠️ Beta Sürüm  |  "..GameName.."  |  "..ExecutorName,
+    ConfigurationSaving = {Enabled=false},
+    KeySystem = false,
+})
+
+-- ─────────────────────
+--  TAB: COMBAT
+-- ─────────────────────
+local CT = Win:CreateTab("⚔️ Combat", 4483362458)
+
+CT:CreateSection("── Silent Aim ──")
+CT:CreateToggle({Name="Silent Aim",CurrentValue=C.SilentAim,Flag="SA",
+    Callback=function(v) C.SilentAim=v; if v then EnableSA() else DisableSA() end; SaveConfig() end})
+CT:CreateToggle({Name="SA  ·  FOV Dairesi",CurrentValue=C.SilentAimShowFOV,Flag="SAF",
+    Callback=function(v) C.SilentAimShowFOV=v; SaveConfig() end})
+CT:CreateSlider({Name="SA  ·  FOV",Range={10,800},Increment=5,Suffix="px",
+    CurrentValue=C.SilentAimFOV,Flag="SAFOV",
+    Callback=function(v) C.SilentAimFOV=v; SaveConfig() end})
+CT:CreateDropdown({Name="SA  ·  Hedef Kısım",
+    Options={"Head","UpperTorso","HumanoidRootPart"},
+    CurrentOption={C.SilentAimPart},Flag="SAP",
+    Callback=function(v) C.SilentAimPart=v[1]; SaveConfig() end})
+
+CT:CreateDivider()
+CT:CreateSection("── Aimbot ──")
+CT:CreateToggle({Name="Aimbot",CurrentValue=C.Aimbot,Flag="AB",
+    Callback=function(v) C.Aimbot=v; SaveConfig() end})
+CT:CreateToggle({Name="AB  ·  FOV Dairesi",CurrentValue=C.AimbotShowFOV,Flag="ABF",
+    Callback=function(v) C.AimbotShowFOV=v; SaveConfig() end})
+CT:CreateSlider({Name="AB  ·  FOV",Range={10,800},Increment=5,Suffix="px",
+    CurrentValue=C.AimbotFOV,Flag="ABFOV",
+    Callback=function(v) C.AimbotFOV=v; SaveConfig() end})
+CT:CreateDropdown({Name="AB  ·  Hedef Kısım",
+    Options={"Head","UpperTorso","HumanoidRootPart","LowerTorso"},
+    CurrentOption={C.AimbotPart},Flag="ABP",
+    Callback=function(v) C.AimbotPart=v[1]; SaveConfig() end})
+CT:CreateDropdown({Name="AB  ·  Tuş",Options={"RMB","LMB","E"},
+    CurrentOption={C.AimbotKey},Flag="ABK",
+    Callback=function(v) C.AimbotKey=v[1]; SaveConfig() end})
+CT:CreateSlider({Name="AB  ·  Smoothness  (1=anlık)",Range={1,10},Increment=1,
+    CurrentValue=C.AimbotSmooth,Flag="ABS",
+    Callback=function(v) C.AimbotSmooth=v; SaveConfig() end})
+CT:CreateToggle({Name="Prediction",CurrentValue=C.Prediction,Flag="Prd",
+    Callback=function(v) C.Prediction=v; SaveConfig() end})
+CT:CreateSlider({Name="Prediction ms",Range={50,600},Increment=10,Suffix="ms",
+    CurrentValue=C.PredictionMs,Flag="PrdMs",
+    Callback=function(v) C.PredictionMs=v; SaveConfig() end})
+
+CT:CreateDivider()
+CT:CreateSection("── Genel ──")
+CT:CreateToggle({Name="Takım Kontrolü",CurrentValue=C.TeamCheck,Flag="TC",
+    Callback=function(v) C.TeamCheck=v; SaveConfig() end})
+CT:CreateToggle({Name="Duvar Arkası Hedef",CurrentValue=C.WallCheck,Flag="WC",
+    Callback=function(v) C.WallCheck=v; SaveConfig() end})
+
+CT:CreateDivider()
+CT:CreateSection("── Triggerbot ──")
+CT:CreateToggle({Name="Triggerbot",CurrentValue=C.Triggerbot,Flag="Trig",
+    Callback=function(v) C.Triggerbot=v; SaveConfig() end})
+CT:CreateSlider({Name="Gecikme",Range={0,500},Increment=5,Suffix="ms",
+    CurrentValue=C.TrigDelay,Flag="TD",
+    Callback=function(v) C.TrigDelay=v; SaveConfig() end})
+CT:CreateSlider({Name="İsabet Şansı",Range={1,100},Increment=1,Suffix="%",
+    CurrentValue=C.HitChance,Flag="HC",
+    Callback=function(v) C.HitChance=v; SaveConfig() end})
+
+CT:CreateDivider()
+CT:CreateSection("── Hitbox Expander ──")
+CT:CreateToggle({Name="Hitbox Expander",CurrentValue=C.HitboxExpander,Flag="HBE",
+    Callback=function(v)
+        C.HitboxExpander=v
+        if v then SetupAllHitboxes()
+        else RestoreAllHitboxes() end
+        SaveConfig()
+    end})
+CT:CreateSlider({Name="Boyut",Range={2,30},Increment=0.5,
+    CurrentValue=C.HitboxSize,Flag="HBS",
+    Callback=function(v) C.HitboxSize=v; SaveConfig() end})
+
+-- ─────────────────────
+--  TAB: ESP
+-- ─────────────────────
+local ET = Win:CreateTab("👁️ ESP", 4483362458)
+
+ET:CreateSection("── Box ──")
+ET:CreateToggle({Name="Box ESP (Köşe Kutusu)",CurrentValue=C.BoxESP,Flag="BE",
+    Callback=function(v) C.BoxESP=v; SaveConfig() end})
+ET:CreateSlider({Name="Kalınlık",Range={1,5},Increment=1,
+    CurrentValue=C.BoxThick,Flag="BT",
+    Callback=function(v) C.BoxThick=v; SaveConfig() end})
+
+ET:CreateSection("── Etiketler ──")
+ET:CreateToggle({Name="İsim",CurrentValue=C.NameESP,Flag="NE",
+    Callback=function(v) C.NameESP=v; SaveConfig() end})
+ET:CreateToggle({Name="Sağlık Barı + %",CurrentValue=C.HealthESP,Flag="HE",
+    Callback=function(v) C.HealthESP=v; SaveConfig() end})
+ET:CreateToggle({Name="Mesafe",CurrentValue=C.DistESP,Flag="DE",
+    Callback=function(v) C.DistESP=v; SaveConfig() end})
+ET:CreateToggle({Name="Head Dot",CurrentValue=C.HeadDot,Flag="HD",
+    Callback=function(v) C.HeadDot=v; SaveConfig() end})
+
+ET:CreateSection("── Çizgiler ──")
+ET:CreateToggle({Name="Tracer",CurrentValue=C.TracerESP,Flag="TE",
+    Callback=function(v) C.TracerESP=v; SaveConfig() end})
+ET:CreateDropdown({Name="Tracer Noktası",Options={"Bottom","Middle","Top"},
+    CurrentOption={C.TracerOrigin},Flag="TO",
+    Callback=function(v) C.TracerOrigin=v[1]; SaveConfig() end})
+ET:CreateToggle({Name="Skeleton (İskelet)",CurrentValue=C.SkeletonESP,Flag="SE",
+    Callback=function(v) C.SkeletonESP=v; SaveConfig() end})
+
+ET:CreateSection("── Chams (Highlight) ──")
+ET:CreateToggle({Name="Chams — Duvar Arkası",CurrentValue=C.Chams,Flag="Ch",
+    Callback=function(v)
+        C.Chams=v
+        if not v then for _,p in ipairs(Players:GetPlayers()) do RemoveChams(p) end end
+        SaveConfig()
+    end})
+ET:CreateSlider({Name="Saydamlık",Range={0,95},Increment=5,Suffix="%",
+    CurrentValue=C.ChamsAlpha,Flag="ChA",
+    Callback=function(v) C.ChamsAlpha=v; SaveConfig() end})
+ET:CreateSlider({Name="Renk R",Range={0,255},Increment=5,CurrentValue=C.ChamsR,Flag="ChR",
+    Callback=function(v) C.ChamsR=v; SaveConfig() end})
+ET:CreateSlider({Name="Renk G",Range={0,255},Increment=5,CurrentValue=C.ChamsG,Flag="ChG",
+    Callback=function(v) C.ChamsG=v; SaveConfig() end})
+ET:CreateSlider({Name="Renk B",Range={0,255},Increment=5,CurrentValue=C.ChamsB,Flag="ChB",
+    Callback=function(v) C.ChamsB=v; SaveConfig() end})
+
+-- ─────────────────────
+--  TAB: MOVEMENT
+-- ─────────────────────
+local MV = Win:CreateTab("🏃 Movement", 4483362458)
+MV:CreateSection("── Speed ──")
+MV:CreateToggle({Name="Speed Hack",CurrentValue=C.Speed,Flag="SH",
+    Callback=function(v) C.Speed=v; SaveConfig() end})
+MV:CreateSlider({Name="WalkSpeed",Range={16,500},Increment=1,CurrentValue=C.WalkSpeed,Flag="WS",
+    Callback=function(v) C.WalkSpeed=v; SaveConfig() end})
+MV:CreateSection("── Fly ──")
+MV:CreateToggle({Name="Fly  (WASD+Space/Shift)",CurrentValue=C.Fly,Flag="Fly",
+    Callback=function(v) C.Fly=v; if v then StartFly() else KillFly() end; SaveConfig() end})
+MV:CreateSlider({Name="Fly Hız",Range={5,500},Increment=5,CurrentValue=C.FlySpeed,Flag="FS",
+    Callback=function(v) C.FlySpeed=v; SaveConfig() end})
+MV:CreateSection("── Diğer ──")
+MV:CreateToggle({Name="Noclip",CurrentValue=C.Noclip,Flag="NC",
+    Callback=function(v) C.Noclip=v; SaveConfig() end})
+MV:CreateToggle({Name="Infinite Jump",CurrentValue=C.InfJump,Flag="IJ",
+    Callback=function(v) C.InfJump=v; SaveConfig() end})
+MV:CreateToggle({Name="Bunny Hop",CurrentValue=C.BHop,Flag="BH",
+    Callback=function(v) C.BHop=v; SaveConfig() end})
+MV:CreateToggle({Name="High Jump",CurrentValue=C.HighJump,Flag="HJ",
+    Callback=function(v) C.HighJump=v; SaveConfig() end})
+MV:CreateSlider({Name="Jump Power",Range={50,1000},Increment=10,CurrentValue=C.JumpPow,Flag="JP",
+    Callback=function(v) C.JumpPow=v; SaveConfig() end})
+MV:CreateToggle({Name="Long Jump  (Space)",CurrentValue=C.LongJump,Flag="LJ",
+    Callback=function(v) C.LongJump=v; SaveConfig() end})
+
+-- ─────────────────────
+--  TAB: PLAYER
+-- ─────────────────────
+local PL = Win:CreateTab("👤 Player", 4483362458)
+PL:CreateSection("── Hayatta Kalma ──")
+PL:CreateToggle({Name="God Mode",CurrentValue=C.GodMode,Flag="GM",
+    Callback=function(v) SetGodMode(v); SaveConfig() end})
+PL:CreateToggle({Name="Anti-Void",CurrentValue=C.AntiVoid,Flag="AV",
+    Callback=function(v) C.AntiVoid=v; SaveConfig() end})
+PL:CreateToggle({Name="Anti-AFK",CurrentValue=C.AntiAFK,Flag="AAK",
+    Callback=function(v) C.AntiAFK=v; SaveConfig() end})
+PL:CreateToggle({Name="Anti-Ragdoll",CurrentValue=C.AntiRagdoll,Flag="AR",
+    Callback=function(v) C.AntiRagdoll=v; SaveConfig() end})
+PL:CreateSection("── Görsel ──")
+PL:CreateToggle({Name="Fullbright",CurrentValue=C.Fullbright,Flag="FB",
+    Callback=function(v) SetFullbright(v); SaveConfig() end})
+PL:CreateToggle({Name="No Fog",CurrentValue=C.NoFog,Flag="NF",
+    Callback=function(v) SetNoFog(v); SaveConfig() end})
+PL:CreateToggle({Name="No Shadows",CurrentValue=C.NoShadows,Flag="NS",
+    Callback=function(v) SetNoShadows(v); SaveConfig() end})
+
+-- ─────────────────────
+--  TAB: WORLD
+-- ─────────────────────
+local WD = Win:CreateTab("🌍 World", 4483362458)
+WD:CreateSection("── Fizik ──")
+WD:CreateSlider({Name="Yerçekimi",Range={0,600},Increment=1,Suffix="G",
+    CurrentValue=C.Gravity,Flag="Gv",
+    Callback=function(v) C.Gravity=v; ApplyGravity(); SaveConfig() end})
+WD:CreateButton({Name="Sıfırla (196.2)",
+    Callback=function() C.Gravity=196.2; ApplyGravity()
+        Rayfield:Notify({Title="World",Content="Sıfırlandı.",Duration=2}) end})
+WD:CreateSection("── Zaman ──")
+WD:CreateSlider({Name="ClockTime",Range={0,24},Increment=0.25,CurrentValue=C.ClockTime,Flag="CT",
+    Callback=function(v) C.ClockTime=v; if not C.TimeFreeze then Lighting.ClockTime=v end; SaveConfig() end})
+WD:CreateToggle({Name="Zamanı Dondur",CurrentValue=C.TimeFreeze,Flag="TF",
+    Callback=function(v) C.TimeFreeze=v; SaveConfig() end})
+WD:CreateToggle({Name="No Weather",CurrentValue=C.NoWeather,Flag="NW",
+    Callback=function(v) SetNoWeather(v); SaveConfig() end})
+WD:CreateSection("── Map ──")
+WD:CreateButton({Name="⚠️ Haritayı Temizle",
+    Callback=function()
+        local n=0
+        for _,v in ipairs(Workspace:GetDescendants()) do
+            if v:IsA("BasePart") and v.Name~="HumanoidRootPart"
+                and not v:IsDescendantOf(LP.Character or Instance.new("Folder")) then
+                pcall(function() v:Destroy(); n=n+1 end)
+            end
+        end
+        Rayfield:Notify({Title="Map",Content=n.." parça silindi!",Duration=3})
+    end})
+
+-- ─────────────────────
+--  TAB: TELEPORT
+-- ─────────────────────
+local TP = Win:CreateTab("🌀 Teleport", 4483362458)
+TP:CreateSection("── Oyunculara Işınlan ──")
+for _, p in ipairs(Players:GetPlayers()) do
+    if p~=LP then local pp=p
+        TP:CreateButton({Name="→  "..pp.Name,
+            Callback=function() TpToPlayer(pp)
+                Rayfield:Notify({Title="TP",Content=pp.Name.." konumuna ışınlandın.",Duration=2}) end})
+    end
+end
+TP:CreateSection("── Waypoints ──")
+local wpIn="WP1"
+TP:CreateInput({Name="Waypoint Adı",PlaceholderText="WP1",RemoveTextAfterFocusLost=false,
+    Callback=function(v) if v~="" then wpIn=v end end})
+TP:CreateButton({Name="📍 Konumu Kaydet",
+    Callback=function() AddWP(wpIn)
+        local h=HRPF()
+        Rayfield:Notify({Title="WP",Content=wpIn.." kaydedildi!"
+            ..(h and ("\n"..math.floor(h.Position.X)..","..math.floor(h.Position.Y)..","..math.floor(h.Position.Z)) or ""),Duration=3}) end})
+TP:CreateButton({Name="🚀 Waypointle Işınlan",
+    Callback=function()
+        if Waypoints[wpIn] then TpWP(wpIn)
+            Rayfield:Notify({Title="TP",Content=wpIn.." konumuna ışınlandın.",Duration=2})
+        else Rayfield:Notify({Title="Hata",Content=wpIn.." bulunamadı!",Duration=3}) end end})
+TP:CreateButton({Name="🗑️ Waypointu Sil",
+    Callback=function() Waypoints[wpIn]=nil
+        Rayfield:Notify({Title="WP",Content=wpIn.." silindi.",Duration=2}) end})
+TP:CreateSection("── Sunucu ──")
+TP:CreateButton({Name="🔀 Server Hop",
+    Callback=function()
+        Rayfield:Notify({Title="Server Hop",Content="Aranıyor...",Duration=2})
+        if not ServerHop() then Rayfield:Notify({Title="Hata",Content="Sunucu bulunamadı.",Duration=3}) end end})
+TP:CreateButton({Name="🔄 Rejoin",
+    Callback=function() TeleportSvc:Teleport(game.PlaceId) end})
+
+-- ─────────────────────
+--  TAB: MISC
+-- ─────────────────────
+local MC = Win:CreateTab("⚙️ Misc", 4483362458)
+MC:CreateSection("── Chat Spammer ──")
+MC:CreateInput({Name="Mesaj",PlaceholderText="Mesaj...",RemoveTextAfterFocusLost=false,
+    Callback=function(v) if v~="" then C.ChatMsg=v; SaveConfig() end end})
+MC:CreateSlider({Name="Gecikme",Range={1,60},Increment=1,Suffix="sn",CurrentValue=C.ChatDelay,Flag="CD",
+    Callback=function(v) C.ChatDelay=v; SaveConfig() end})
+MC:CreateToggle({Name="Chat Spammer",CurrentValue=C.ChatSpam,Flag="CS",
+    Callback=function(v)
+        C.ChatSpam=v
+        if v then StartSpam()
+        else if SpamThread then task.cancel(SpamThread); SpamThread=nil end end
+        SaveConfig()
+    end})
+MC:CreateSection("── Performans ──")
+MC:CreateToggle({Name="FPS Boost",CurrentValue=C.FPSBoost,Flag="FPB",
+    Callback=function(v) C.FPSBoost=v; if v then ApplyFPSBoost() end; SaveConfig() end})
+MC:CreateToggle({Name="FPS + Ping Göstergesi",CurrentValue=C.ShowFPS,Flag="SFP",
+    Callback=function(v) C.ShowFPS=v; SaveConfig() end})
+MC:CreateSection("── Bilgi ──")
+MC:CreateLabel("⚠️  Bu hile BETA sürümündedir. Hatalar oluşabilir.")
+MC:CreateLabel("🖥️  Executor : "..ExecutorName)
+MC:CreateLabel("🎮  Oyun     : "..GameName)
+MC:CreateLabel("🆔  PlaceID  : "..GameID)
+MC:CreateLabel("👤  Oyuncu  : "..LP.Name)
+MC:CreateLabel("🔧  Sürüm   : RedaxHACK v1.0 BETA")
+MC:CreateSection("── Script Hub ──")
+local SCRIPTS={
+    {n="Infinite Yield",u="https://raw.githubusercontent.com/EdgeIY/infinite-yield/master/script.lua"},
+    {n="Dex Explorer",  u="https://raw.githubusercontent.com/LorekeeperZinnia/Dex/master/DexNew.lua"},
+    {n="Remote Spy",    u="https://raw.githubusercontent.com/exxtremestuffs/SimpleSpySource/master/SimpleSpy.lua"},
+    {n="Dark Dex v3",   u="https://raw.githubusercontent.com/Babyhamsta/RBLX_Scripts/main/Universal/DarkDex.lua"},
+}
+for _,s in ipairs(SCRIPTS) do local ss=s
+    MC:CreateButton({Name="📥 "..ss.n,
+        Callback=function()
+            local ok,err=pcall(function() loadstring(game:HttpGet(ss.u))() end)
+            Rayfield:Notify({Title=ok and "✅ Tamam" or "❌ Hata",
+                Content=ok and (ss.n.." yüklendi!") or tostring(err):sub(1,80),Duration=4})
+        end})
+end
+MC:CreateSection("── Config ──")
+MC:CreateButton({Name="💾 Kaydet",Callback=function() SaveConfig()
+    Rayfield:Notify({Title="Config",Content="Kaydedildi!",Duration=2}) end})
+MC:CreateButton({Name="📂 Yükle",Callback=function() LoadConfig()
+    Rayfield:Notify({Title="Config",Content="Yüklendi!",Duration=2}) end})
+MC:CreateButton({Name="🔄 Sıfırla",Callback=function()
+    for k,v in pairs(DEFAULT) do C[k]=v end; SaveConfig()
+    Rayfield:Notify({Title="Config",Content="Sıfırlandı!",Duration=2}) end})
+
+-- ══════════════════════════════════════════════════════
+--  KEYBIND
+-- ══════════════════════════════════════════════════════
+UserInputService.InputBegan:Connect(function(inp,gp)
+    if gp then return end
+    if inp.KeyCode==Enum.KeyCode.RightControl then Rayfield:Toggle() end
+end)
+
+-- ══════════════════════════════════════════════════════
+--  BAŞLANGIÇ
+-- ══════════════════════════════════════════════════════
+task.spawn(function()
+    task.wait(1.5)
+    if C.Fullbright then SetFullbright(true) end
+    if C.NoFog      then SetNoFog(true)      end
+    if C.NoShadows  then SetNoShadows(true)  end
+    if C.NoWeather  then SetNoWeather(true)  end
+    if C.FPSBoost   then ApplyFPSBoost()     end
+    if C.GodMode    then SetGodMode(true)    end
+    if C.Fly        then StartFly()          end
+    if C.SilentAim  then EnableSA()          end
+    ApplyGravity()
+    if not C.TimeFreeze then Lighting.ClockTime=C.ClockTime end
+    if C.HitboxExpander then SetupAllHitboxes() end
+
+    task.wait(0.5)
+    Rayfield:Notify({
+        Title   = "⚠️ RedaxHACK v1.0 BETA Aktif",
+        Content = "Beta sürüm — Hatalar oluşabilir.\n"
+            ..GameName.."  |  "..ExecutorName
+            .."\n[RightControl] → Menü",
+        Duration = 7,
+    })
 end)
